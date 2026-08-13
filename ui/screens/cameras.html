@@ -1,0 +1,659 @@
+<!-- cameras.html — multi-camera grid (NVR-style) -->
+<div style="height:100%;overflow-y:auto;background:var(--bg)">
+<div style="padding:20px 24px 24px;min-height:100%;display:flex;flex-direction:column;box-sizing:border-box">
+
+  <!-- ── Header + toolbar ── -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-shrink:0;flex-wrap:wrap">
+    <div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.3px">กล้อง</div>
+      <div style="font-size:13px;color:var(--text-sub);margin-top:2px">ดูหลายกล้องพร้อมกันได้ในจอเดียว</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <!-- Layout switcher (1 / 4 / 9 / 16) -->
+      <div id="cam-layout-switch" style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:3px"></div>
+      <button onclick="camAddOpen()" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+        เพิ่มกล้อง
+      </button>
+    </div>
+  </div>
+
+  <!-- ── The NVR grid ── -->
+  <div id="cam-grid" style="flex:1;display:grid;gap:10px;grid-template-columns:repeat(2,1fr);align-content:start"></div>
+
+  <!-- Empty state -->
+  <div id="cam-empty" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-muted)">
+    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+    <div style="text-align:center">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">ยังไม่มีกล้อง</div>
+      <div style="font-size:13px;margin-top:3px">กด “เพิ่มกล้อง” เพื่อเริ่มต้น</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<style>
+  .cam-tile{position:relative;background:#0b1220;border:1px solid var(--border);border-radius:12px;overflow:hidden;aspect-ratio:16/9;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s}
+  .cam-tile:hover{border-color:var(--border-accent,var(--accent))}
+  .cam-tile.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+  .cam-tile.alarm{animation:camAlarmFlash 1.1s ease-in-out 3}
+  @keyframes camAlarmFlash{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 0 3px rgba(239,68,68,.9)}}
+  .cam-tile-img{width:100%;height:100%;object-fit:contain;background:#000;display:block}
+  .cam-tile-off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,.28);font-size:12.5px}
+  .cam-tile-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent)}
+  .cam-tile-name{display:flex;align-items:center;gap:6px;color:#fff;font-size:12.5px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cam-live{width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0;animation:recPulse 1.4s infinite}
+  .cam-live.off{background:#6b7280;animation:none}
+  .cam-tile-btns{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:8px 10px;background:linear-gradient(to top,rgba(0,0,0,.55),transparent);opacity:0;transition:opacity .15s}
+  .cam-tile:hover .cam-tile-btns{opacity:1}
+  .cam-tbtn{width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cam-tbtn:hover{background:rgba(0,0,0,.7)}
+  /* Destructive action reads as destructive only on hover — a red button sitting
+     permanently on every tile invites the mis-click it is trying to prevent. */
+  .cam-tbtn-del:hover{background:rgba(239,68,68,.85);border-color:rgba(239,68,68,.9)}
+  .cam-badge{padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800;white-space:nowrap;flex-shrink:0}
+  .cam-lay-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:800}
+  .cam-lay-btn.active{background:var(--accent);color:#fff}
+</style>
+
+<!-- ══════════════ FULLSCREEN VIEW MODAL ══════════════ -->
+<div id="cam-fs-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="display:flex;align-items:center;gap:6px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);padding:4px 10px;border-radius:7px;color:#ef4444;font-size:11.5px;font-weight:700">
+        <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;animation:recPulse 1.4s infinite"></span>LIVE
+      </span>
+      <span id="fs-cam-label" style="color:#fff;font-weight:600;font-size:14px">กล้อง</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button onclick="camOpenRoleModal(_fsCamId)" style="display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        ตั้งค่าบทบาท
+      </button>
+      <button onclick="camCloseFs()" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div style="flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000">
+    <img id="fs-frame" src="" style="max-width:100%;max-height:100%;object-fit:contain" alt="">
+    <div id="fs-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:rgba(255,255,255,.3)">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+      <span style="font-size:14px">ไม่มีสัญญาณ</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 20px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);flex-shrink:0">
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="fs-roles-bar"></div>
+    <span style="font-size:12px;color:rgba(255,255,255,.5)" id="fs-clock">--:--:--</span>
+  </div>
+</div>
+
+<!-- ══════════════ ADD / EDIT CAMERA MODAL ══════════════ -->
+<div id="cam-add-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5);width:460px;max-width:92vw;max-height:90vh;overflow-y:auto;padding:26px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:17px;font-weight:800;color:var(--text)" id="cam-add-title">เพิ่มกล้อง</div>
+      <button onclick="camAddClose()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
+    </div>
+
+    <label style="font-size:12px;font-weight:700;color:var(--text-muted)">ชื่อกล้อง</label>
+    <input id="cam-add-name" class="input" type="text" placeholder="เช่น โซนผลิต A" style="width:100%;margin:6px 0 16px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+
+    <label style="font-size:12px;font-weight:700;color:var(--text-muted)">แหล่งภาพ</label>
+    <div style="display:flex;gap:8px;margin:6px 0 14px">
+      <button type="button" class="cam-src-tab" data-src="webcam" onclick="camAddSelSrc('webcam')">Webcam</button>
+      <button type="button" class="cam-src-tab" data-src="rtsp" onclick="camAddSelSrc('rtsp')">RTSP</button>
+      <button type="button" class="cam-src-tab" data-src="file" onclick="camAddSelSrc('file')">ไฟล์วิดีโอ</button>
+    </div>
+
+    <div id="cam-add-webcam" style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--text-muted)">Webcam index</label>
+      <input id="cam-add-index" type="number" min="0" value="0" style="width:100%;margin-top:6px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+    </div>
+    <div id="cam-add-rtsp" style="margin-bottom:16px;display:none">
+      <label style="font-size:12px;color:var(--text-muted)">RTSP URL</label>
+      <input id="cam-add-url" type="text" placeholder="rtsp://192.168.1.100:554/stream1" style="width:100%;margin-top:6px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+    </div>
+    <div id="cam-add-file" style="margin-bottom:16px;display:none">
+      <label style="font-size:12px;color:var(--text-muted)">ไฟล์วิดีโอ</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <input id="cam-add-path" type="text" readonly placeholder="เลือกไฟล์..." style="flex:1;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+        <button onclick="camAddBrowse()" style="height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--font);font-size:13px">เลือก</button>
+      </div>
+    </div>
+
+    <div id="cam-add-error" style="color:var(--red);font-size:12.5px;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:9px;justify-content:flex-end">
+      <button onclick="camAddClose()" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text-sub);font-family:var(--font);font-size:13px;cursor:pointer">ยกเลิก</button>
+      <button onclick="camAddSave()" style="height:36px;padding:0 20px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer" id="cam-add-save">บันทึกและเริ่ม</button>
+    </div>
+  </div>
+</div>
+<style>
+  .cam-src-tab{flex:1;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text-sub);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
+  .cam-src-tab.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+</style>
+
+<!-- ══════════════ ROLE ASSIGNMENT MODAL ══════════════ -->
+<div id="cam-role-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5);width:440px;max-height:90vh;overflow-y:auto;padding:28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">ตั้งค่าบทบาทการตรวจจับ</div>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px" id="role-modal-cam-name">กล้อง</div>
+      </div>
+      <button onclick="camCloseRoleModal()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;background:var(--bg-card-alt);border-radius:9px;padding:10px 14px">
+      เลือกโมเดลตรวจจับที่ต้องการเปิดใช้สำหรับกล้องนี้
+    </div>
+    <div id="role-checklist" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px"></div>
+    <div id="role-ppe-section" style="margin-bottom:20px"></div>
+    <div id="role-zone-section" style="margin-bottom:20px"></div>
+    <div style="display:flex;gap:9px;justify-content:space-between">
+      <button onclick="camRemoveCurrent()" style="height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--red);background:transparent;color:var(--red);font-family:var(--font);font-size:13px;cursor:pointer">ลบกล้อง</button>
+      <div style="display:flex;gap:9px">
+        <button onclick="camCloseRoleModal()" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text-sub);font-family:var(--font);font-size:13px;cursor:pointer">ยกเลิก</button>
+        <button onclick="camSaveRoles()" style="height:36px;padding:0 20px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">บันทึกบทบาท</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────
+var _camList     = [];     // [{id,name,source,webcam_index,rtsp_url,video_file_path}]
+var _camRoles    = {};     // { camId: [roleIds] }
+var _camPpeItems = {};     // { camId: [ppe category ids] }
+var _camStatus   = {};     // { camId: statusSnapshot } from /api/cameras/status
+var _camLayout   = 4;      // 1 | 4 | 9 | 16
+var _fsCamId     = null;
+var _roleCamId   = null;
+var _addEditId   = null;   // non-null => editing an existing camera
+var _addSrc      = 'webcam';
+var _camPollTimer = null;
+var _gridSig      = null;   // structure signature — rebuild only when it changes
+var _camLastTry   = {};     // camId -> last auto-start attempt (ms), for backoff
+// camId -> true when THIS page changed that camera's roles/ppe_items. Only those
+// are written back, so an open Cameras screen cannot revert a role that was set
+// elsewhere (the Zone Editor turns the zone role on when a zone is saved).
+var _camRolesDirty = {};
+
+var _ppeItemsCfg = [
+  { id: 'helmet',  label: 'หมวกนิรภัย',   icon: '⛑️' },
+  { id: 'glasses', label: 'แว่นตานิรภัย',  icon: '🥽' },
+  { id: 'vest',    label: 'เสื้อกั๊ก',     icon: '🦺' },
+  { id: 'gloves',  label: 'ถุงมือ',        icon: '🧤' },
+  { id: 'boots',   label: 'รองเท้าเซฟตี้', icon: '🥾' },
+];
+var _rolesCfg = [
+  { id: 'ppe',  label: 'ตรวจจับ PPE',       desc: 'ตรวจหมวก แว่นตา เสื้อกั๊ก ถุงมือ รองเท้า', color: 'var(--orange)', icon: '🦺' },
+  { id: 'zone', label: 'เฝ้าพื้นที่อันตราย', desc: 'ตรวจบุคคลเข้าพื้นที่อันตราย',            color: 'var(--accent)', icon: '📍' },
+  { id: 'fall', label: 'ตรวจจับการล้ม',      desc: 'ตรวจการล้มและแจ้งเตือนฉุกเฉิน',        color: 'var(--red)',    icon: '🚑' },
+];
+
+function camById(id) { return _camList.find(function(c){ return c.id === id; }); }
+function camIsOnline(id) {
+  var s = _camStatus[id];
+  return !!(s && (s.camera === 'connected' || s.running));
+}
+
+// ─── Layout switcher ───────────────────────────────
+function camRenderLayoutSwitch() {
+  var box = document.getElementById('cam-layout-switch');
+  if (!box) return;
+  var opts = [{n:1,l:'1'},{n:4,l:'4'},{n:9,l:'9'},{n:16,l:'16'}];
+  box.innerHTML = opts.map(function(o){
+    return '<button class="cam-lay-btn' + (o.n===_camLayout?' active':'') + '" onclick="camSetLayout('+o.n+')" title="'+o.l+' ช่อง">'+o.l+'</button>';
+  }).join('');
+}
+function camSetLayout(n) {
+  _camLayout = n;
+  camRenderLayoutSwitch();
+  camApplyGridCols();
+}
+function camApplyGridCols() {
+  var grid = document.getElementById('cam-grid');
+  if (!grid) return;
+  var cols = _camLayout === 1 ? 1 : _camLayout === 4 ? 2 : _camLayout === 9 ? 3 : 4;
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
+}
+
+// ─── Grid render ───────────────────────────────────
+// Signature of what the grid STRUCTURE depends on. Status (online/offline,
+// engine errors) is deliberately NOT part of it — see camRenderGrid.
+function camGridSig() {
+  return _camList.map(function(c) { return c.id + ' ' + c.name; }).join('|');
+}
+
+function camRenderGrid(force) {
+  var grid  = document.getElementById('cam-grid');
+  var empty = document.getElementById('cam-empty');
+  if (!grid) return;
+  if (_camList.length === 0) {
+    grid.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    _gridSig = null;
+    return;
+  }
+  grid.style.display = 'grid';
+  if (empty) empty.style.display = 'none';
+  camApplyGridCols();
+
+  // ONLY rebuild the DOM when the camera list itself changed.
+  //
+  // This used to run on every status poll (2.5s), and `grid.innerHTML = ...`
+  // destroys and recreates every <img>. Each new <img> then had to decode a
+  // ~103 KB base64 data URL from scratch — all tiles at once, every 2.5
+  // seconds, on top of the 10-15 fps of live frames already arriving. Between
+  // the rebuild and the decode finishing, every tile rendered empty, so the
+  // whole grid blanked and repopulated one camera at a time. That is the
+  // "flickering / cameras swapping around" symptom: nothing was actually
+  // swapping, the tiles were being thrown away and rebuilt underneath the
+  // stream. Live frames arriving mid-rebuild were dropped outright.
+  var sig = camGridSig();
+  if (!force && sig === _gridSig && grid.children.length === _camList.length) {
+    camUpdateTiles();          // cheap, in-place, never touches <img>
+    return;
+  }
+  _gridSig = sig;
+
+  grid.innerHTML = _camList.map(function(c) {
+    var frame = (ZENTRA._frames || {})[c.id];
+    return '<div class="cam-tile" id="cam-cell-'+c.id+'" onclick="camSelect(\''+c.id+'\')" ondblclick="camOpenFs(\''+c.id+'\')">'
+      + '<img id="cam-tile-'+c.id+'" class="cam-tile-img" src="'+(frame||'')+'" alt="" style="'+(frame?'':'display:none')+'">'
+      + '<div class="cam-tile-off" id="cam-off-'+c.id+'" style="'+(frame?'display:none':'')+'"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg><span>ไม่มีสัญญาณ</span></div>'
+      + '<div class="cam-tile-top">'
+      +   '<span class="cam-tile-name"><span class="cam-live" id="cam-live-'+c.id+'"></span>'+ZENTRA.esc(c.name)+'</span>'
+      +   '<span class="cam-badge" id="cam-badge-'+c.id+'"></span>'
+      + '</div>'
+      + '<div class="cam-tile-btns" onclick="event.stopPropagation()">'
+      +   '<button class="cam-tbtn" onclick="camOpenRoleModal(\''+c.id+'\')" title="ตั้งค่า"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></button>'
+      +   '<button class="cam-tbtn" onclick="camOpenFs(\''+c.id+'\')" title="เต็มจอ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>'
+      +   '<button class="cam-tbtn cam-tbtn-del" onclick="camRemove(\''+c.id+'\')" title="ลบกล้อง"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg></button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+  camUpdateTiles();
+}
+
+// In-place status paint. Touches text/class/visibility only, so the <img>
+// elements — and the frames already decoded into them — survive untouched.
+function camUpdateTiles() {
+  _camList.forEach(function(c) {
+    var online = camIsOnline(c.id);
+    var st     = _camStatus[c.id] || {};
+    var badge  = document.getElementById('cam-badge-' + c.id);
+    if (badge) {
+      if (st.engine_error) {
+        badge.textContent = 'AI ขัดข้อง';
+        badge.style.cssText = 'background:var(--red-dim);color:var(--red)';
+      } else if (online) {
+        badge.textContent = 'ออนไลน์';
+        badge.style.cssText = 'background:var(--green-dim);color:var(--green)';
+      } else {
+        badge.textContent = 'ออฟไลน์';
+        badge.style.cssText = 'background:rgba(107,114,128,.18);color:#9ca3af';
+      }
+    }
+    var dot = document.getElementById('cam-live-' + c.id);
+    if (dot) dot.classList.toggle('off', !online);
+    // Reveal the picture as soon as this camera has ever sent a frame.
+    var hasFrame = !!(ZENTRA._frames || {})[c.id];
+    var img = document.getElementById('cam-tile-' + c.id);
+    var off = document.getElementById('cam-off-' + c.id);
+    if (img) img.style.display = hasFrame ? 'block' : 'none';
+    if (off) off.style.display = hasFrame ? 'none' : 'flex';
+  });
+}
+
+function camSelect(id) {
+  document.querySelectorAll('.cam-tile').forEach(function(t){ t.classList.remove('selected'); });
+  var cell = document.getElementById('cam-cell-'+id);
+  if (cell) cell.classList.add('selected');
+}
+
+// ─── Start / stop ──────────────────────────────────
+function camStartBody(c) {
+  var body = { camera_id: c.id, source: c.source };
+  if (c.source === 'webcam') body.webcam_index = parseInt(c.webcam_index || 0, 10);
+  if (c.source === 'rtsp')   body.rtsp_url = c.rtsp_url || '';
+  if (c.source === 'file')   body.video_file_path = c.video_file_path || '';
+  return body;
+}
+function camStart(id) {
+  var c = camById(id);
+  if (!c) return;
+  ZENTRA.connectWS();
+  fetch('/api/pipeline/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(camStartBody(c)) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.ok) { ZENTRA.toast(d.error || 'เปิดกล้องไม่สำเร็จ', 'error'); }
+      else { ZENTRA.startStatusPoll(); camRefreshStatus(); }
+    }).catch(function(){ ZENTRA.toast('เชื่อมต่อระบบไม่สำเร็จ', 'error'); });
+}
+function camStop(id) {
+  fetch('/api/pipeline/stop', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ camera_id: id }) })
+    .then(function(){ if (ZENTRA._frames) delete ZENTRA._frames[id]; camRefreshStatus(); })
+    .catch(function(){});
+}
+// ─── Auto-start ────────────────────────────────────
+// A camera in the list IS a camera you connected, so it simply runs — there is
+// no start/stop button any more. Retries are backed off (AUTOSTART_RETRY_MS) so
+// a camera with a bad RTSP URL cannot be hammered several times a second, while
+// one that is merely booting still comes up on its own.
+var CAM_AUTOSTART_RETRY_MS = 30000;
+function camAutoStart() {
+  var now = Date.now();
+  _camList.forEach(function(c) {
+    if (camIsOnline(c.id)) { _camLastTry[c.id] = 0; return; }
+    if (now - (_camLastTry[c.id] || 0) < CAM_AUTOSTART_RETRY_MS) return;
+    _camLastTry[c.id] = now;
+    camStart(c.id);
+  });
+}
+
+// ─── Status polling (per-camera) ───────────────────
+function camRefreshStatus() {
+  fetch('/api/cameras/status').then(function(r){ return r.json(); }).then(function(d){
+    _camStatus = (d && d.cameras) || {};
+    if (document.getElementById('cam-grid')) {
+      camRenderGrid();     // in-place unless the camera LIST changed
+      camAutoStart();
+    }
+  }).catch(function(){});
+}
+
+// ─── Fullscreen ────────────────────────────────────
+var _fsTimer = null;
+function camOpenFs(id) {
+  _fsCamId = id;
+  var modal = document.getElementById('cam-fs-modal'); if (!modal) return;
+  modal.style.display = 'flex';
+  var c = camById(id) || { name: 'กล้อง' };
+  var lbl = document.getElementById('fs-cam-label'); if (lbl) lbl.textContent = c.name;
+  var img = document.getElementById('fs-frame');
+  var ph  = document.getElementById('fs-placeholder');
+  var roles = _camRoles[id] || [];
+  var rb = document.getElementById('fs-roles-bar');
+  if (rb) rb.innerHTML = roles.length ? roles.map(camRoleBadge).join(' ')
+    : '<span style="font-size:12px;color:rgba(255,255,255,.4)">ยังไม่กำหนดบทบาท</span>';
+  clearInterval(_fsTimer);
+  _fsTimer = setInterval(function(){
+    if (!document.getElementById('cam-fs-modal') || document.getElementById('cam-fs-modal').style.display==='none') { clearInterval(_fsTimer); return; }
+    var f = (ZENTRA._frames || {})[_fsCamId];
+    if (f) { if (img){ img.src=f; img.style.display='block'; } if (ph) ph.style.display='none'; }
+    else   { if (img) img.style.display='none'; if (ph) ph.style.display='flex'; }
+    var clk = document.getElementById('fs-clock');
+    if (clk) clk.textContent = new Date().toLocaleTimeString('th-TH', { hour12:false });
+  }, 150);
+  document.body.style.overflow = 'hidden';
+}
+function camCloseFs() {
+  clearInterval(_fsTimer);
+  var modal = document.getElementById('cam-fs-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ─── Add / edit camera ─────────────────────────────
+function camNextId() {
+  var i = 0; while (camById('cam'+i)) i++; return 'cam'+i;
+}
+function camAddSelSrc(src) {
+  _addSrc = src;
+  document.querySelectorAll('.cam-src-tab').forEach(function(t){ t.classList.toggle('active', t.dataset.src===src); });
+  document.getElementById('cam-add-webcam').style.display = src==='webcam' ? 'block' : 'none';
+  document.getElementById('cam-add-rtsp').style.display   = src==='rtsp'   ? 'block' : 'none';
+  document.getElementById('cam-add-file').style.display   = src==='file'   ? 'block' : 'none';
+}
+function camAddOpen(editId) {
+  _addEditId = editId || null;
+  var m = document.getElementById('cam-add-modal'); if (!m) return;
+  m.style.display = 'flex';
+  m.onclick = function(e){ if (e.target === m) camAddClose(); };
+  document.getElementById('cam-add-title').textContent = _addEditId ? 'แก้ไขกล้อง' : 'เพิ่มกล้อง';
+  document.getElementById('cam-add-save').textContent  = _addEditId ? 'บันทึก' : 'บันทึกและเริ่ม';
+  document.getElementById('cam-add-error').textContent = '';
+  var c = _addEditId ? camById(_addEditId) : null;
+  document.getElementById('cam-add-name').value  = c ? c.name : ('กล้อง #' + (_camList.length + 1));
+  document.getElementById('cam-add-index').value = c ? (c.webcam_index || 0) : 0;
+  document.getElementById('cam-add-url').value   = c ? (c.rtsp_url || '') : '';
+  document.getElementById('cam-add-path').value  = c ? (c.video_file_path || '') : '';
+  camAddSelSrc(c ? c.source : 'webcam');
+}
+function camAddClose() { var m = document.getElementById('cam-add-modal'); if (m) m.style.display='none'; }
+async function camAddBrowse() {
+  try { var p = await window.pywebview.api.open_file_dialog(); if (p) document.getElementById('cam-add-path').value = p; }
+  catch (_) { document.getElementById('cam-add-path').value = 'test_video.mp4'; }
+}
+function camAddSave() {
+  var name = document.getElementById('cam-add-name').value.trim() || 'กล้อง';
+  var err  = document.getElementById('cam-add-error');
+  var cam  = { source: _addSrc, name: name };
+  if (_addSrc === 'webcam') cam.webcam_index = parseInt(document.getElementById('cam-add-index').value || 0, 10);
+  if (_addSrc === 'rtsp') {
+    cam.rtsp_url = document.getElementById('cam-add-url').value.trim();
+    if (!cam.rtsp_url) { err.textContent = 'กรุณากรอก RTSP URL'; return; }
+  }
+  if (_addSrc === 'file') {
+    cam.video_file_path = document.getElementById('cam-add-path').value.trim();
+    if (!cam.video_file_path) { err.textContent = 'กรุณาเลือกไฟล์วิดีโอ'; return; }
+  }
+  var id = _addEditId || camNextId();
+  cam.id = id;
+  var existing = camById(id);
+  if (existing) Object.assign(existing, cam); else _camList.push(cam);
+  if (!_camRoles[id]) _camRoles[id] = [];
+  if (!_camPpeItems[id]) _camPpeItems[id] = ['helmet', 'vest'];
+  if (!_addEditId) _camRolesDirty[id] = true;   // brand-new camera needs its defaults written
+  camPersist().then(function(){
+    camAddClose();
+    camRenderGrid();
+    if (!_addEditId) camStart(id);   // new camera → start immediately
+    else { camStop(id); setTimeout(function(){ camStart(id); }, 400); }  // edited → restart to apply source
+  });
+}
+
+// ─── Persist the whole registry to settings.cameras ─
+// Roles and PPE items are written ONLY for cameras this page actually edited.
+// It used to send `_camRoles[id]` for every camera on every save, from whatever
+// snapshot it loaded when the screen opened — so anything that changed roles
+// afterwards was silently reverted by the next unrelated save (renaming a
+// camera, adding one). Saving a zone now enables that camera's zone role
+// server-side, which made the clobber routine: draw a zone, touch anything on
+// this page, and the role was gone again. Untouched cameras keep whatever the
+// server currently holds.
+function camPersist() {
+  return fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s){
+    var cams = s.cameras || {};
+    // Rebuild from _camList so removals stick.
+    var next = {};
+    _camList.forEach(function(c){
+      var prev = cams[c.id] || {};
+      var entry = {
+        name: c.name, source: c.source,
+        webcam_index: c.webcam_index || 0,
+        rtsp_url: c.rtsp_url || '', video_file_path: c.video_file_path || '',
+      };
+      if (_camRolesDirty[c.id]) {
+        // `|| default` does NOT catch an empty array — [] is truthy in JS, so an
+        // empty item list used to persist itself forever and the camera checked
+        // no PPE at all while reporting its module "ok". Test length, not truth.
+        entry.roles = _camRoles[c.id] || [];
+        entry.ppe_items = (_camPpeItems[c.id] || []).length ? _camPpeItems[c.id]
+                                                            : ['helmet','vest'];
+      }
+      next[c.id] = Object.assign({}, prev, entry);
+      // Re-sync this page from what is about to be on disk, so a later save
+      // cannot resurrect a stale value.
+      _camRoles[c.id]    = next[c.id].roles || [];
+      _camPpeItems[c.id] = (next[c.id].ppe_items || []).length ? next[c.id].ppe_items
+                                                               : ['helmet','vest'];
+      delete _camRolesDirty[c.id];
+    });
+    s.cameras = next;
+    return fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(s) });
+  }).catch(function(){});
+}
+
+async function camForget(id) {
+  camStop(id);
+  _camList = _camList.filter(function(c){ return c.id !== id; });
+  delete _camRoles[id]; delete _camPpeItems[id]; delete _camLastTry[id];
+  if (ZENTRA._frames) delete ZENTRA._frames[id];
+  await camPersist();
+  camRenderGrid(true);
+}
+
+function camRemove(id) {
+  var c = camById(id);
+  ZENTRA.confirm('ลบ "' + ((c && c.name) || id) + '" ออกจากระบบ?',
+                 { danger:true, okText:'ลบ' }).then(function(ok){
+    if (ok) camForget(id);
+  });
+}
+
+function camRemoveCurrent() {
+  var id = _roleCamId; if (!id) return;
+  ZENTRA.confirm('ลบกล้องนี้ออกจากระบบ?', { danger:true, okText:'ลบ' }).then(function(ok){
+    if (!ok) return;
+    camForget(id).then(function(){ camCloseRoleModal(); });
+  });
+}
+
+// ─── Role modal (per camera id) ────────────────────
+function camRoleBadge(roleId) {
+  var r = _rolesCfg.find(function(x){ return x.id === roleId; });
+  if (!r) return '';
+  return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;background:'+r.color+'22;color:'+r.color+';font-size:11px;font-weight:700;white-space:nowrap">'+r.icon+' '+r.label+'</span>';
+}
+function camOpenRoleModal(id) {
+  _roleCamId = id;
+  var c = camById(id) || { id:id, name:'กล้อง' };
+  var modal = document.getElementById('cam-role-modal'); if (!modal) return;
+  modal.style.display = 'flex';
+  modal.onclick = function(e){ if (e.target === modal) camCloseRoleModal(); };
+  var nm = document.getElementById('role-modal-cam-name'); if (nm) nm.textContent = c.name;
+  var current = _camRoles[id] || [];
+  var cl = document.getElementById('role-checklist'); if (!cl) return;
+  cl.innerHTML = _rolesCfg.map(function(r){
+    var checked = current.indexOf(r.id) !== -1;
+    return '<label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer">'
+      + '<input type="checkbox" id="role-chk-'+r.id+'" '+(checked?'checked':'')+' style="width:16px;height:16px;cursor:pointer;margin-top:2px;accent-color:var(--accent)">'
+      + '<div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:17px">'+r.icon+'</span>'
+      + '<span style="font-size:13.5px;font-weight:700;color:var(--text)">'+r.label+'</span></div>'
+      + '<div style="font-size:12px;color:var(--text-muted);margin-top:3px">'+r.desc+'</div></div></label>';
+  }).join('');
+  camRenderPpeSection(id);
+  camRenderZoneSection(id);
+}
+
+function camRenderPpeSection(camId) {
+  var box = document.getElementById('role-ppe-section'); if (!box) return;
+  var sel = (_camPpeItems[camId] || []).length ? _camPpeItems[camId] : ['helmet','vest'];
+  var head = '<div style="font-size:12px;font-weight:800;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">ตรวจเช็ค PPE อะไรบ้าง</div>';
+  var grid = _ppeItemsCfg.map(function(it){
+    var checked = sel.indexOf(it.id) !== -1;
+    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer">'
+      + '<input type="checkbox" id="ppe-item-'+it.id+'" '+(checked?'checked':'')+' style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
+      + '<span style="font-size:16px">'+it.icon+'</span><span style="font-size:13px;color:var(--text)">'+it.label+'</span></label>';
+  }).join('');
+  box.innerHTML = head + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+grid+'</div>';
+}
+function camRenderZoneSection(camId) {
+  var box = document.getElementById('role-zone-section'); if (!box) return;
+  box.innerHTML = '';
+  fetch('/api/zones').then(function(r){ return r.json(); }).then(function(zones){
+    var mine = (zones || []).filter(function(z){ return (z.camera_id||'cam0')===camId; });
+    var head = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      + '<span style="font-size:12px;font-weight:800;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase">พื้นที่อันตราย</span>'
+      + '<button onclick="camDrawNewZone(\''+camId+'\')" style="font-size:12px;color:var(--accent);background:transparent;border:none;cursor:pointer;font-family:var(--font);font-weight:600">＋ วาดโซนใหม่</button></div>';
+    var list = mine.length === 0
+      ? '<div style="font-size:12px;color:var(--text-muted);font-style:italic;padding:4px 0">ยังไม่ได้กำหนดพื้นที่สำหรับกล้องนี้</div>'
+      : mine.map(function(z){
+          return '<div onclick="camEditZone(\''+camId+'\','+z.id+')" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer;margin-bottom:6px">'
+            + '<span style="width:9px;height:9px;border-radius:2px;background:#ef4444;flex-shrink:0"></span>'
+            + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ZENTRA.esc(z.name||'Zone')+'</div>'
+            + '<div style="font-size:10.5px;color:var(--text-muted)">อันตราย · '+(z.points||[]).length+' จุด</div></div></div>';
+        }).join('');
+    box.innerHTML = head + list;
+  }).catch(function(){});
+}
+function camEditZone(camId, zoneId) { ZENTRA._pendingZoneEdit = { camId:camId, zoneId:zoneId }; ZENTRA.navigate('zone_editor'); }
+function camDrawNewZone(camId) { ZENTRA._pendingZoneEdit = { camId:camId, zoneId:null }; ZENTRA.navigate('zone_editor'); }
+function camCloseRoleModal() { var m = document.getElementById('cam-role-modal'); if (m) m.style.display='none'; }
+async function camSaveRoles() {
+  var id = _roleCamId; if (!id) return;
+  var selected = _rolesCfg.filter(function(r){ var chk=document.getElementById('role-chk-'+r.id); return chk&&chk.checked; }).map(function(r){ return r.id; });
+  _camRoles[id] = selected;
+  var ppeItems = _ppeItemsCfg.filter(function(it){ var chk=document.getElementById('ppe-item-'+it.id); return chk&&chk.checked; }).map(function(it){ return it.id; });
+  // PPE on with nothing ticked is a camera that can never raise a violation
+  // while every screen reports its PPE module as "ok". Say so and keep the
+  // previous list rather than saving a silently-dead configuration.
+  if (selected.indexOf('ppe') !== -1 && !ppeItems.length) {
+    ZENTRA.toast('เลือกอุปกรณ์ที่จะตรวจอย่างน้อย 1 อย่าง — ไม่งั้นกล้องนี้จะไม่แจ้งเตือน PPE เลย', 'warn');
+    return;
+  }
+  _camPpeItems[id] = ppeItems;
+  _camRolesDirty[id] = true;      // the operator changed these on purpose
+  camPersist().then(function(){
+    camCloseRoleModal();
+    camRenderGrid();
+    var rb = document.getElementById('fs-roles-bar');
+    if (rb) rb.innerHTML = selected.length ? selected.map(camRoleBadge).join(' ')
+      : '<span style="font-size:12px;color:rgba(255,255,255,.4)">ยังไม่กำหนดบทบาท</span>';
+  });
+}
+
+// ─── Alert flash + live frame hook ─────────────────
+ZENTRA._gridAlertHook = function(msg) {
+  var id = msg && msg.camera_id; if (!id) return;
+  var cell = document.getElementById('cam-cell-'+id);
+  if (cell) { cell.classList.remove('alarm'); void cell.offsetWidth; cell.classList.add('alarm'); }
+};
+
+// ─── Init ──────────────────────────────────────────
+function camEscHandler(e) {
+  if (e.key !== 'Escape') return;
+  var add = document.getElementById('cam-add-modal');
+  if (add && add.style.display === 'flex') { camAddClose(); return; }
+  var role = document.getElementById('cam-role-modal');
+  if (role && role.style.display === 'flex') { camCloseRoleModal(); return; }
+  var fs = document.getElementById('cam-fs-modal');
+  if (fs && fs.style.display === 'flex') { camCloseFs(); }
+}
+
+function init_cameras() {
+  if (window._camEscHandler) document.removeEventListener('keydown', window._camEscHandler);
+  window._camEscHandler = camEscHandler;
+  document.addEventListener('keydown', window._camEscHandler);
+
+  camRenderLayoutSwitch();
+
+  fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s){
+    var cams = (s.cameras || {});
+    _camList = Object.keys(cams).map(function(id){
+      var c = cams[id] || {};
+      return { id:id, name:c.name||('กล้อง '+id), source:c.source||'webcam',
+               webcam_index:c.webcam_index||0, rtsp_url:c.rtsp_url||'', video_file_path:c.video_file_path||'' };
+    });
+    Object.keys(cams).forEach(function(id){
+      _camRoles[id]    = cams[id].roles || [];
+      _camPpeItems[id] = (cams[id].ppe_items || []).length ? cams[id].ppe_items
+                                                           : ['helmet','vest'];
+    });
+    camRenderGrid(true);
+    ZENTRA.connectWS();        // frames arrive over the shared WebSocket
+    camRefreshStatus();        // → paints status, then auto-starts what is down
+  }).catch(function(){ camRenderGrid(true); });
+
+  // Refresh per-camera status on a light timer (online/offline, engine errors).
+  if (_camPollTimer) clearInterval(_camPollTimer);
+  _camPollTimer = setInterval(function(){
+    if (!document.getElementById('cam-grid')) { clearInterval(_camPollTimer); return; }
+    camRefreshStatus();
+  }, 2500);
+}
+</script>

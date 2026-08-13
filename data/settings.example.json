@@ -1,0 +1,96 @@
+{
+  "line": {
+    "channel_access_token": "",
+    "groups": [
+      {
+        "name": "กลุ่มหลัก",
+        "id": "",
+        "cooldown": 30,
+        "enabled": false
+      }
+    ]
+  },
+  "ai": {
+    "ppe_confidence": 0.3,
+    "abstain_weight": 0.35,
+    "fall_bbox_ratio": 0.72,
+    "fall_confirm_frames": 6,
+    "fall_mode": "hybrid"
+  },
+  "alerts": {
+    "violation_cooldown_seconds": 30,
+    "zone_cooldown_seconds": 20,
+    "fall_cooldown_seconds": 15,
+    "warning_enabled": true,
+    "alert_enabled": true,
+    "emergency_enabled": true,
+    "upload_images": true
+  },
+  "camera": {
+    "source": "webcam",
+    "webcam_index": 0,
+    "rtsp_url": "",
+    "video_file_path": "",
+    "flip_horizontal": false
+  },
+  "display": {
+    "stream_fps": 10,
+    "stream_width": 960,
+    "stream_height": 540,
+    "stream_jpeg_quality": 70
+  },
+  "cloud": {
+    "enabled": false,
+    "url": "",
+    "token": "",
+    "fps": 10
+  },
+  "data": {
+    "retention_days": 90,
+    "auto_collect": false,
+    "normal_interval_sec": 10
+  },
+  "cameras": {
+    "cam0": {
+      "roles": [],
+      "ppe_items": [
+        "helmet",
+        "vest"
+      ],
+      "name": "กล้อง #1",
+      "source": "rtsp",
+      "webcam_index": 0,
+      "rtsp_url": "rtsp://USERNAME:PASSWORD@192.168.1.x:554/Streaming/Channels/101",
+      "video_file_path": ""
+    },
+    "cam1": {
+      "roles": [],
+      "ppe_items": [
+        "helmet",
+        "vest"
+      ],
+      "name": "กล้อง #2",
+      "source": "rtsp",
+      "webcam_index": 0,
+      "rtsp_url": "rtsp://USERNAME:PASSWORD@192.168.1.x:554/Streaming/Channels/101",
+      "video_file_path": ""
+    },
+    "cam2": {
+      "roles": [],
+      "ppe_items": [
+        "helmet",
+        "vest"
+      ],
+      "name": "กล้อง #3",
+      "source": "rtsp",
+      "webcam_index": 0,
+      "rtsp_url": "rtsp://USERNAME:PASSWORD@192.168.1.x:554/Streaming/Channels/101",
+      "video_file_path": ""
+    }
+  },
+  "report": {
+    "site": "",
+    "company": "",
+    "preparer": ""
+  }
+}

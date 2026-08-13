@@ -1,0 +1,40 @@
+# bytetrack_zentra.yaml — ZENTRA-tuned ByteTrack for the in-process ultralytics
+# Detector (utils/detect_track.py). The engine used to pass tracker="bytetrack.yaml"
+# (ultralytics' packaged default), so NONE of config.py's BYTETRACK_* values ever
+# reached the real deployed tracker — IDs churned. This file IS that tracker now.
+#
+# Design goal: the SAME worker keeps the SAME id through brief occlusion, a turn,
+# or a one-frame confidence dip. Two ideas from the ByteTrack paper drive it:
+#   1) Feed the tracker LOW-confidence boxes too (track_low_thresh) so a person
+#      whose score dips is RECOVERED by second-association instead of re-IDed.
+#      (Detector runs model.track at conf≈PPE_TRACK_CONF=0.10 to supply them.)
+#   2) Keep a lost track alive for track_buffer frames before deleting it, so a
+#      short occlusion doesn't mint a new id on reappearance.
+tracker_type: bytetrack
+
+# First-association floor: boxes >= this are matched to existing tracks with high
+# trust. Persons at normal confidence land here.
+track_high_thresh: 0.25
+
+# Second-association floor: boxes in [low, high) are used ONLY to keep already-
+# tracked persons alive (recover a dip). Must be >= the detector's conf floor
+# (PERSON_CONF) or these boxes never arrive.
+track_low_thresh: 0.10
+
+# Only a confident box may start a brand-new id. Lowered 0.40 -> 0.25 now that a
+# COCO person detector (not the weak PPE person class) feeds the tracker: person
+# scores are reliable, so a distant/partially-occluded worker in a crowd still
+# earns an id. At 0.40 those people never got one — and PPEEngine.detect skips
+# every person whose track_id is None, so they were invisible to the safety logic.
+new_track_thresh: 0.25
+
+# Frames a lost track is remembered before deletion. At ~7-8 fps detect rate this
+# is ~11 s — long enough to survive an occlusion/turn and re-attach the same id.
+track_buffer: 90
+
+# IoU match tolerance. Our path has no strong motion model, so a walking person
+# can shift a lot between processed frames; keep matching lenient.
+match_thresh: 0.85
+
+# Multiply detection confidence into the match cost — stabilises association.
+fuse_score: true

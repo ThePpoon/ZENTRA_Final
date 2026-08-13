@@ -1,0 +1,361 @@
+<!-- แก้ไขพื้นที่ — วาดพื้นที่อันตราย (polygon) บนภาพจากกล้อง -->
+<div style="height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
+
+  <!-- ── Toolbar (title · camera · actions) ── -->
+  <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10">
+    <div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.2px">แก้ไขพื้นที่</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:1px">วาดพื้นที่อันตรายบนภาพจากกล้อง</div>
+    </div>
+    <div style="flex:1"></div>
+    <!-- Camera select (moved off the canvas so it never blocks drawing) -->
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11.5px;font-weight:600;color:var(--text-muted)">กล้อง</span>
+      <select id="zone-cam-select" onchange="zoneOnCamChange()" style="height:34px;min-width:150px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card-alt);color:var(--text);font-family:var(--font);font-size:13px;padding:0 10px;cursor:pointer"></select>
+    </div>
+    <!-- Drawing actions -->
+    <div style="display:flex;gap:8px">
+      <button onclick="zoneUndo()" style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);font-family:var(--font);font-size:13px;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>ย้อน</button>
+      <button onclick="zoneClear()" style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);font-family:var(--font);font-size:13px;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>ล้าง</button>
+      <button id="zone-save-btn" onclick="zoneSave()" style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 16px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>บันทึกพื้นที่</button>
+    </div>
+  </div>
+
+  <!-- ── Main content: canvas (left) + zones sidebar (right) ── -->
+  <div style="flex:1;display:flex;overflow:hidden">
+    <!-- Canvas column — full unobstructed drawing area (no panels floating over it) -->
+    <div id="zone-panel" style="flex:1;position:relative;overflow:hidden;min-width:0">
+      <canvas id="zone-canvas" style="display:block;width:100%;height:100%;cursor:crosshair"></canvas>
+      <video id="zone-video" style="display:none"></video>
+      <img id="zone-bg" src="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:.6" alt="">
+
+      <!-- Help hint — click-through (pointer-events:none) so it never blocks a click -->
+      <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:none;display:flex;align-items:center;gap:7px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);border:1px solid var(--border);border-radius:99px;padding:6px 16px;font-size:11.5px;color:rgba(255,255,255,.8);white-space:nowrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
+        คลิกวางจุด · ลากมุมเพื่อปรับ · คลิกพื้นที่ในรายการเพื่อแก้ไข
+      </div>
+    </div>
+
+    <!-- Right sidebar: saved zones (own column — no longer overlapping the canvas) -->
+    <div style="width:250px;flex-shrink:0;background:var(--bg-card);border-left:1px solid var(--border);overflow-y:auto;padding:14px">
+      <div style="font-size:11px;font-weight:800;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">พื้นที่อันตรายบนกล้องนี้</div>
+      <div id="zone-saved-list" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Zone drawing state ───────────────────────────
+var _zonePoints = [];
+var _zoneCtx    = null;
+var _zoneBg     = null;
+var _zoneEditId   = null;   // id being edited (null = drawing a new zone)
+var _zoneEditName = null;   // current name when editing
+var _zoneDragIdx  = -1;     // vertex index being dragged
+var _zoneHoverIdx = -1;     // vertex index hovered
+var _zoneCamId  = 'cam0';
+var _zoneType   = 'danger';
+var _zoneCams   = [{ id: 'cam0', name: 'กล้อง #1' }];
+
+// ─── Canvas init + mouse handlers ─────────────────
+function zeInitZoneCanvas() {
+  var canvas = document.getElementById('zone-canvas');
+  if (!canvas) return;
+  _zoneCtx = canvas.getContext('2d');
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  // Camera list + this camera's background are loaded from the API (async);
+  // zoneLoadCams() fills the dropdown and then calls zoneLoadBg().
+  zoneLoadCams();
+  zoneSetType(_zoneType);
+  zoneUpdateSaveBtn();
+  zoneLoadList();
+
+  function evtPos(e) {
+    var r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (canvas.width / r.width),
+             y: (e.clientY - r.top)  * (canvas.height / r.height) };
+  }
+  function nearestVertex(p) {
+    var best = -1, bd = 13 * 13;   // 13px grab radius (squared)
+    for (var i = 0; i < _zonePoints.length; i++) {
+      var dx = _zonePoints[i].x - p.x, dy = _zonePoints[i].y - p.y, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+  canvas.onmousedown = function(e) {
+    var p = evtPos(e), idx = nearestVertex(p);
+    if (idx >= 0) { _zoneDragIdx = idx; }   // grab an existing corner to move it
+    else { _zonePoints.push(p); }           // click empty space → add a corner
+    zeDrawZone();
+  };
+  canvas.onmousemove = function(e) {
+    var p = evtPos(e);
+    if (_zoneDragIdx >= 0) { _zonePoints[_zoneDragIdx] = p; zeDrawZone(); return; }
+    var idx = nearestVertex(p);
+    canvas.style.cursor = (idx >= 0) ? 'grab' : 'crosshair';
+    if (idx !== _zoneHoverIdx) { _zoneHoverIdx = idx; zeDrawZone(); }
+  };
+  canvas.onmouseup    = function() { _zoneDragIdx = -1; };
+  canvas.onmouseleave = function() { _zoneDragIdx = -1; _zoneHoverIdx = -1; zeDrawZone(); };
+}
+
+function zoneTypeColors() {
+  // Only danger zones exist now (exclusion was removed to reduce confusion).
+  return { stroke: 'rgba(239,68,68,.95)', fill: 'rgba(239,68,68,.16)', dot: '#ef4444' };
+}
+
+function zeDrawZone() {
+  if (!_zoneCtx) return;
+  var canvas = document.getElementById('zone-canvas');
+  var c = zoneTypeColors();
+  var n = _zonePoints.length;
+  _zoneCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // polygon body
+  if (n >= 2) {
+    _zoneCtx.beginPath();
+    _zoneCtx.moveTo(_zonePoints[0].x, _zonePoints[0].y);
+    for (var i = 1; i < n; i++) _zoneCtx.lineTo(_zonePoints[i].x, _zonePoints[i].y);
+    if (n >= 3) { _zoneCtx.closePath(); _zoneCtx.fillStyle = c.fill; _zoneCtx.fill(); }
+    _zoneCtx.strokeStyle = c.stroke; _zoneCtx.lineWidth = 2.5; _zoneCtx.lineJoin = 'round'; _zoneCtx.stroke();
+  }
+  // vertices (draggable handles)
+  for (var j = 0; j < n; j++) {
+    var pt = _zonePoints[j];
+    var active = (j === _zoneDragIdx || j === _zoneHoverIdx);
+    _zoneCtx.beginPath();
+    _zoneCtx.arc(pt.x, pt.y, active ? 8 : 6, 0, Math.PI * 2);
+    _zoneCtx.fillStyle = '#fff'; _zoneCtx.fill();
+    _zoneCtx.lineWidth = active ? 3 : 2; _zoneCtx.strokeStyle = c.stroke; _zoneCtx.stroke();
+    if (j === 0) {  // mark the first vertex
+      _zoneCtx.beginPath(); _zoneCtx.arc(pt.x, pt.y, 2.6, 0, Math.PI * 2);
+      _zoneCtx.fillStyle = c.dot; _zoneCtx.fill();
+    }
+  }
+}
+
+function zoneUndo() { _zonePoints.pop(); zeDrawZone(); }
+
+function zoneClear() {
+  _zonePoints = []; _zoneDragIdx = -1; _zoneHoverIdx = -1;
+  if (_zoneCtx) {
+    var canvas = document.getElementById('zone-canvas');
+    _zoneCtx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+function zoneUpdateSaveBtn() {
+  var btn = document.getElementById('zone-save-btn');
+  if (!btn) return;
+  var saveIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>';
+  var editIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  btn.innerHTML = _zoneEditId ? (editIco + 'อัปเดตพื้นที่') : (saveIco + 'บันทึกพื้นที่');
+}
+
+function zoneNewDraw() {  // exit edit mode → start a fresh zone
+  _zoneEditId = null; _zoneEditName = null;
+  zoneClear(); zoneUpdateSaveBtn(); zoneLoadList();
+}
+
+function zoneSetType() {
+  // Exclusion removed — every zone is a danger zone now.
+  _zoneType = 'danger';
+}
+
+// Load the REAL camera registry. This list used to be the hardcoded literal
+// [{id:'cam0'}], so the dropdown always held exactly one entry and zones could
+// only ever be drawn for the first camera — every other camera was unreachable
+// from this screen.
+async function zoneLoadCams() {
+  var cams = [];
+  try {
+    var s = await (await fetch('/api/settings')).json();
+    var reg = s.cameras || {};
+    cams = Object.keys(reg).map(function (id) {
+      return { id: id, name: (reg[id] || {}).name || id };
+    });
+  } catch (e) { /* fall through to the default below */ }
+  if (!cams.length) cams = [{ id: 'cam0', name: 'กล้อง #1' }];
+  _zoneCams = cams;
+  var sel = document.getElementById('zone-cam-select');
+  if (sel) {
+    sel.innerHTML = cams.map(function (c) {
+      return '<option value="' + ZENTRA.esc(c.id) + '">' + ZENTRA.esc(c.name) + '</option>';
+    }).join('');
+    // Keep the current selection if it still exists, else fall back to the first.
+    if (!cams.some(function (c) { return c.id === _zoneCamId; })) _zoneCamId = cams[0].id;
+    sel.value = _zoneCamId;
+  }
+  zoneLoadBg();
+}
+
+// Background must follow the SELECTED camera. It used to be pinned to
+// ZENTRA._lastFrame — the primary camera's live frame — so picking camera #2
+// drew its zones on camera #1's picture.
+function zoneLoadBg() {
+  var bg = document.getElementById('zone-bg');
+  if (!bg || !_zoneCamId) return;
+  bg.src = '/api/frame/snapshot?camera_id=' + encodeURIComponent(_zoneCamId) + '&t=' + Date.now();
+}
+
+function zoneOnCamChange() {
+  var sel = document.getElementById('zone-cam-select');
+  if (sel) _zoneCamId = sel.value;
+  zoneClear();
+  zoneLoadBg();
+  zoneLoadList();
+}
+
+// Map canvas-pixel polygon → normalized 0–1 in the video's contain-fitted area
+// (the bg <img> uses object-fit:contain, so it may be letterboxed in the canvas).
+function zoneNormalizePoints(pts, canvas, bg) {
+  var cw = canvas.width, ch = canvas.height;
+  var iw = (bg && bg.naturalWidth)  || cw;
+  var ih = (bg && bg.naturalHeight) || ch;
+  var scale = Math.min(cw / iw, ch / ih);
+  var dw = iw * scale, dh = ih * scale;
+  var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
+  return pts.map(function(p) {
+    var nx = (p.x - ox) / dw, ny = (p.y - oy) / dh;
+    return [Math.max(0, Math.min(1, +nx.toFixed(4))), Math.max(0, Math.min(1, +ny.toFixed(4)))];
+  });
+}
+
+// Reverse of zoneNormalizePoints: normalized 0–1 → canvas pixels
+function zoneDenormalize(norm, canvas, bg) {
+  var cw = canvas.width, ch = canvas.height;
+  var iw = (bg && bg.naturalWidth)  || cw;
+  var ih = (bg && bg.naturalHeight) || ch;
+  var scale = Math.min(cw / iw, ch / ih);
+  var dw = iw * scale, dh = ih * scale;
+  var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
+  return (norm || []).map(function(p) {
+    var x = Array.isArray(p) ? p[0] : p.x, y = Array.isArray(p) ? p[1] : p.y;
+    return { x: ox + x * dw, y: oy + y * dh };
+  });
+}
+
+// Next running default name: "Danger Zone 01", "Danger Zone 02", … based on the
+// highest existing "Danger Zone NN" across all zones (so numbers never collide).
+async function zoneNextDefaultName() {
+  try {
+    var zones = await (await fetch('/api/zones')).json();
+    var max = 0;
+    (zones || []).forEach(function(z) {
+      var m = /^Danger Zone\s+(\d+)$/i.exec((z.name || '').trim());
+      if (m) { var n = parseInt(m[1], 10); if (n > max) max = n; }
+    });
+    return 'Danger Zone ' + String(max + 1).padStart(2, '0');
+  } catch (_) {
+    return 'Danger Zone 01';
+  }
+}
+
+async function zoneSave() {
+  if (_zonePoints.length < 3) { ZENTRA.toast('กรุณาวาดพื้นที่อย่างน้อย 3 จุด', 'warn'); return; }
+  var canvas = document.getElementById('zone-canvas');
+  var bg     = document.getElementById('zone-bg');
+  var norm   = zoneNormalizePoints(_zonePoints, canvas, bg);
+  // Editing keeps the current name; a new zone gets the next running default.
+  var dflt   = _zoneEditName || (await zoneNextDefaultName());
+  var name   = await ZENTRA.prompt('ตั้งชื่อพื้นที่', dflt, { placeholder: 'ชื่อพื้นที่' });
+  if (name === null) return;
+  name = (name || '').trim() || dflt;
+  var payload = {
+    name: name, type: 'danger',
+    color: '#ef4444',
+    points: norm, camera_id: _zoneCamId,
+  };
+  var editing = !!_zoneEditId;
+  var url = editing ? ('/api/zones/' + _zoneEditId) : '/api/zones';
+  fetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(function(r) { return r.json(); })
+    .then(function(saved) {
+      _zoneEditId = null; _zoneEditName = null;
+      zoneClear(); zoneUpdateSaveBtn(); zoneLoadList();
+      ZENTRA.toast((editing ? 'อัปเดต' : 'บันทึก') + 'พื้นที่ "' + name + '" แล้ว · ระบบตรวจจับใช้งานทันที', 'success');
+      // The server turns the zone role on for a camera that did not have it.
+      // Say so — otherwise the camera's role list changes behind the operator's
+      // back, which is worse than the silence this replaced.
+      if (saved && saved.role_enabled) {
+        setTimeout(function() {
+          ZENTRA.toast('เปิดโหมด "เฝ้าพื้นที่อันตราย" ให้กล้องนี้อัตโนมัติ', 'info');
+        }, 400);
+      }
+    })
+    .catch(function() { ZENTRA.toast('บันทึกไม่สำเร็จ', 'error'); });
+}
+
+function zoneEditLoad(id) {
+  fetch('/api/zones').then(function(r) { return r.json(); }).then(function(zones) {
+    var z = (zones || []).find(function(x) { return x.id === id; });
+    if (!z) return;
+    var canvas = document.getElementById('zone-canvas');
+    var bg     = document.getElementById('zone-bg');
+    _zonePoints   = zoneDenormalize(z.points || [], canvas, bg);
+    _zoneEditId   = z.id;
+    _zoneEditName = z.name || '';
+    _zoneDragIdx  = -1; _zoneHoverIdx = -1;
+    zoneSetType(z.type || 'danger');
+    zeDrawZone(); zoneUpdateSaveBtn(); zoneLoadList();
+  }).catch(function() {});
+}
+
+function zoneLoadList() {
+  var box = document.getElementById('zone-saved-list');
+  if (!box) return;
+  fetch('/api/zones').then(function(r) { return r.json(); }).then(function(zones) {
+    var mine = (zones || []).filter(function(z) { return (z.camera_id || 'cam0') === _zoneCamId; });
+    var head = '<button onclick="zoneNewDraw()" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:30px;margin-bottom:9px;border:1.5px dashed var(--border-mid);border-radius:7px;background:transparent;color:var(--text-sub);font-family:var(--font);font-size:12px;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>กำหนดพื้นที่ใหม่</button>';
+    if (mine.length === 0) {
+      box.innerHTML = head + '<div style="font-size:12px;color:var(--text-muted);font-style:italic">ยังไม่ได้กำหนดพื้นที่สำหรับกล้องนี้</div>';
+      return;
+    }
+    box.innerHTML = head + mine.map(function(z) {
+      var col = '#ef4444';
+      var editing = (z.id === _zoneEditId);
+      return '<div onclick="zoneEditLoad(' + z.id + ')" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;background:var(--bg-card-alt);border:1px solid ' + (editing ? 'var(--accent)' : 'var(--border)') + ';cursor:pointer" title="คลิกเพื่อแก้ไข">'
+        + '<span style="width:9px;height:9px;border-radius:2px;background:' + col + ';flex-shrink:0"></span>'
+        + '<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ZENTRA.esc(z.name || 'พื้นที่') + '</span>' + (editing ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' : '') + '</div>'
+        + '<div style="font-size:10.5px;color:var(--text-muted)">อันตราย · ' + (z.points || []).length + ' จุด</div></div>'
+        + '<button onclick="event.stopPropagation();zoneDelete(' + z.id + ')" title="ลบ" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--red);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>'
+        + '</div>';
+    }).join('');
+  }).catch(function() {});
+}
+
+async function zoneDelete(id) {
+  if (!(await ZENTRA.confirm('ต้องการลบพื้นที่นี้หรือไม่?', { danger: true, okText: 'ลบ' }))) return;
+  fetch('/api/zones/' + id, { method: 'DELETE' }).then(function() {
+    if (_zoneEditId === id) { _zoneEditId = null; _zoneEditName = null; zoneClear(); zoneUpdateSaveBtn(); }
+    zoneLoadList();
+    ZENTRA.toast('ลบพื้นที่แล้ว', 'success');
+  }).catch(function() { ZENTRA.toast('ลบไม่สำเร็จ', 'error'); });
+}
+
+// ─── Init ─────────────────────────────────────────
+async function init_zone_editor() {
+  // Handoff from the Cameras "ตั้งค่าบทบาท" modal: pre-select a camera and
+  // (optionally) open a specific saved zone for editing. Read BEFORE the canvas
+  // init so the requested camera is the one the dropdown lands on — the camera
+  // list is fetched asynchronously now, and setting sel.value before the options
+  // exist silently selected nothing.
+  var pend = ZENTRA._pendingZoneEdit;
+  if (pend && pend.camId) {
+    ZENTRA._pendingZoneEdit = null;
+    _zoneCamId = pend.camId;
+  }
+
+  zeInitZoneCanvas();
+  await zoneLoadCams();          // dropdown + background for _zoneCamId
+
+  if (pend) {
+    ZENTRA._pendingZoneEdit = null;
+    if (pend.zoneId) zoneEditLoad(pend.zoneId);
+    else zoneNewDraw();
+    zoneLoadList();
+  }
+}
+</script>

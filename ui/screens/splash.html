@@ -1,0 +1,56 @@
+<div class="splash-screen">
+
+  <!-- Title (logo intentionally omitted for now) -->
+  <div class="splash-logo-wrap">
+    <span class="brand-mark splash-mark">Z</span>
+    <div class="splash-title-block">
+      <div class="splash-title">ZENTRA</div>
+      <div class="splash-subtitle">Industrial Safety AI&nbsp;System</div>
+      <div class="splash-version">NSC 2026</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="splash-progress-wrap">
+    <div class="splash-progress-track">
+      <div class="splash-progress-bar" id="splash-bar"></div>
+    </div>
+    <div class="splash-status" id="splash-status">กำลังเริ่มต้นระบบ...</div>
+    <div class="splash-error" id="splash-error">เกิดข้อผิดพลาด — ไม่สามารถโหลดระบบได้</div>
+  </div>
+
+</div>
+
+<script>
+function init_splash() {
+  const bar    = document.getElementById('splash-bar');
+  const status = document.getElementById('splash-status');
+
+  const steps = [
+    { pct: 15,  msg: 'กำลังโหลดการตั้งค่า...' },
+    { pct: 35,  msg: 'เริ่มต้นเครื่องตรวจจับ AI (ประมวลผลในเครื่อง)...' },
+    { pct: 55,  msg: 'เตรียมโมดูล PPE / โซน / การล้ม...' },
+    { pct: 75,  msg: 'โหลดข้อมูลโซนความปลอดภัย...' },
+    { pct: 90,  msg: 'เริ่มต้นระบบ...' },
+    { pct: 100, msg: 'พร้อมใช้งาน' },
+  ];
+
+  let i = 0;
+
+  function tick() {
+    if (i >= steps.length) return;
+    const s = steps[i++];
+    bar.style.width    = s.pct + '%';
+    status.textContent = s.msg;
+
+    if (s.pct >= 100) {
+      setTimeout(() => ZENTRA.navigate('source'), 600);
+      return;
+    }
+    setTimeout(tick, 480);
+  }
+
+  // Small initial delay so the window paints before the first step
+  setTimeout(tick, 200);
+}
+</script>

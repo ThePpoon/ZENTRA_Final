@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────
+# ZENTRA — .gitignore
+#
+# This repository is PUBLIC. Everything listed here is excluded
+# because it is either a live credential, personal data, or a
+# machine-local artefact that must never leave the site.
+# ─────────────────────────────────────────────────────────────
+
+# ── SECRETS + PERSONAL DATA (never commit) ───────────────────
+# settings.json holds the LINE channel access token and the RTSP
+# URLs, which embed the camera admin password in clear text.
+data/settings.json
+data/settings.backup-*.json
+.env
+*.env
+
+# Event log + evidence snapshots: photographs of identifiable
+# workers. PDPA — these stay on the device that recorded them.
+data/zentra.db
+data/snapshots/
+
+# Auto-collected training frames: also photographs of workers.
+backend/data/collected/
+backend/data/
+
+# ── Local environment ────────────────────────────────────────
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Bundled Python installer — fetch it from python.org instead.
+setup/*.exe
+
+# ── Build / runtime output ───────────────────────────────────
+build/
+dist/
+*.spec
+reports/
+runs/
+logs/
+*.log
+
+# ── Recordings + scratch ─────────────────────────────────────
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# ── OS / editor ──────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+.vscode/

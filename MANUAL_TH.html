@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือการใช้งาน ZENTRA Safety AI System</title>
+<style>
+  /* self-contained ทั้งหมด: ไม่มี font/css/js จากภายนอกเลย
+     เพราะเครื่องปลายทางอาจไม่มีอินเทอร์เน็ต */
+  :root{
+    --bg:#0d1b2a; --panel:#152b40; --panel2:#1b3a56;
+    --line:#264a68; --text:#e8f1f8; --muted:#9fb6c9;
+    --accent:#3fa9f5; --ok:#35c07f; --warn:#f5b13f; --danger:#ef5b5b;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Kanit","Leelawadee UI","Segoe UI",Tahoma,sans-serif;
+    line-height:1.75; font-size:16px;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:32px 20px 80px}
+  header{
+    border-bottom:2px solid var(--line); padding-bottom:20px; margin-bottom:8px;
+  }
+  h1{font-size:28px; margin:0 0 6px}
+  .sub{color:var(--muted); margin:0}
+  h2{
+    font-size:22px; margin:44px 0 14px; padding-top:16px;
+    border-top:1px solid var(--line);
+  }
+  h2 .num{
+    display:inline-block; min-width:34px; height:34px; line-height:34px;
+    text-align:center; background:var(--accent); color:#04121e;
+    border-radius:8px; font-weight:700; margin-right:10px; font-size:17px;
+  }
+  h3{font-size:17px; margin:24px 0 8px; color:var(--accent)}
+  p,li{color:var(--text)}
+  code,kbd{
+    background:#0a1622; border:1px solid var(--line); border-radius:5px;
+    padding:2px 7px; font-family:Consolas,"Courier New",monospace; font-size:14px;
+    color:#bfe3ff;
+  }
+  kbd{box-shadow:0 2px 0 var(--line); font-weight:600}
+  .card{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:16px 20px; margin:16px 0;
+  }
+  .steps{counter-reset:s; list-style:none; padding:0; margin:0}
+  .steps>li{
+    counter-increment:s; position:relative; padding:12px 0 12px 46px;
+    border-bottom:1px solid var(--line);
+  }
+  .steps>li:last-child{border-bottom:none}
+  .steps>li::before{
+    content:counter(s); position:absolute; left:0; top:12px;
+    width:30px; height:30px; line-height:30px; text-align:center;
+    background:var(--panel2); border:1px solid var(--accent);
+    color:var(--accent); border-radius:50%; font-weight:700; font-size:14px;
+  }
+  .note,.warn,.danger{
+    border-left:4px solid; border-radius:0 8px 8px 0;
+    padding:12px 18px; margin:16px 0; background:var(--panel);
+  }
+  .note{border-color:var(--accent)}
+  .warn{border-color:var(--warn)}
+  .danger{border-color:var(--danger)}
+  .note b,.warn b,.danger b{display:block; margin-bottom:4px}
+  .note b{color:var(--accent)} .warn b{color:var(--warn)} .danger b{color:var(--danger)}
+  table{border-collapse:collapse; width:100%; margin:16px 0; font-size:15px}
+  th,td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  th{background:var(--panel2); color:var(--accent); font-weight:600}
+  td:first-child{white-space:nowrap; color:var(--warn)}
+  .tablewrap{overflow-x:auto}
+  .toc{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 20px}
+  .toc ol{margin:6px 0 0; padding-left:22px}
+  .toc a{color:var(--accent); text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  .big{
+    background:var(--panel2); border:2px dashed var(--accent);
+    border-radius:10px; padding:20px; text-align:center; margin:20px 0;
+  }
+  .big code{font-size:18px; background:none; border:none; color:var(--accent); font-weight:700}
+  footer{margin-top:60px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:14px}
+  @media print{body{background:#fff;color:#000} .card,.toc,.note,.warn,.danger{background:#f5f5f5}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>คู่มือการใช้งาน ZENTRA Safety AI System</h1>
+  <p class="sub">ระบบตรวจจับความปลอดภัยในพื้นที่ทำงานด้วย AI &nbsp;·&nbsp; สำหรับ Windows 11 (64-bit)</p>
+</header>
+
+<div class="toc">
+  <b>สารบัญ</b>
+  <ol>
+    <li><a href="#req">สิ่งที่เครื่องต้องมี</a></li>
+    <li><a href="#install">การติดตั้ง</a></li>
+    <li><a href="#firstrun">เปิดใช้งานครั้งแรก</a></li>
+    <li><a href="#exit">วิธีออกจากโปรแกรม (สำคัญ)</a></li>
+    <li><a href="#camera">การตั้งค่ากล้อง</a></li>
+    <li><a href="#zone">การตั้งค่าโซนพื้นที่อันตราย</a></li>
+    <li><a href="#features">ความสามารถของระบบ</a></li>
+    <li><a href="#line">การแจ้งเตือนผ่าน LINE และ PDPA</a></li>
+    <li><a href="#trouble">ปัญหาที่พบบ่อย</a></li>
+    <li><a href="#uninstall">การถอนการติดตั้ง</a></li>
+  </ol>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="req"><span class="num">1</span>สิ่งที่เครื่องต้องมี</h2>
+
+<div class="tablewrap">
+<table>
+  <tr><th>รายการ</th><th>ความต้องการ</th></tr>
+  <tr><td>ระบบปฏิบัติการ</td><td><b>Windows 11 (64-bit)</b> เท่านั้น</td></tr>
+  <tr><td>Python</td><td><b>ไม่ต้องเตรียมเอง</b> — ตัวติดตั้งลง Python 3.11 ให้อัตโนมัติ<br>(ระบบใช้ได้กับรุ่น 3.11 เท่านั้น ตัวติดตั้งจึงลงรุ่นนี้ให้โดยเฉพาะ<br>ถ้าเครื่องมี Python รุ่นอื่นอยู่แล้วก็ไม่กระทบกัน)</td></tr>
+  <tr><td>RAM</td><td>8 GB ขึ้นไป</td></tr>
+  <tr><td>พื้นที่ว่าง</td><td>ประมาณ 3 GB (ถ้ามีการ์ดจอ NVIDIA เผื่อไว้ 8 GB)</td></tr>
+  <tr><td>กล้อง</td><td>กล้อง USB (webcam) หรือกล้อง IP ที่รองรับ RTSP<br>หรือจะใช้ไฟล์วิดีโอที่บันทึกไว้ก็ได้</td></tr>
+  <tr><td>การ์ดจอ</td><td><b>ไม่จำเป็น</b> — ถ้ามี NVIDIA ระบบจะใช้อัตโนมัติและเร็วขึ้นมาก<br>ถ้าไม่มีจะใช้ CPU ซึ่งช้ากว่าแต่ยังใช้งานได้</td></tr>
+  <tr><td>อินเทอร์เน็ต</td><td>ต้องมี <b>เฉพาะตอนติดตั้งครั้งแรก</b><br>หลังติดตั้งเสร็จใช้งานแบบออฟไลน์ได้ (ยกเว้นถ้าเปิดแจ้งเตือน LINE)</td></tr>
+</table>
+</div>
+
+<div class="note">
+  <b>ไม่ต้องเตรียมอะไรเลยนอกจากเครื่อง Windows 11 กับอินเทอร์เน็ต</b>
+  ทุกอย่างที่ระบบต้องใช้ (Python 3.11 และ WebView2 ตัวแสดงผลหน้าจอ) ติดมากับไฟล์ ZIP แล้ว
+  <code>INSTALL.bat</code> จะตรวจเองว่าเครื่องขาดอะไร แล้วลงให้เฉพาะตัวที่ขาด
+  ถ้ามีอยู่แล้วจะข้ามไป ไม่ไปยุ่งกับของเดิมในเครื่อง
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="install"><span class="num">2</span>การติดตั้ง</h2>
+
+<ol class="steps">
+  <li>
+    <b>แตกไฟล์ ZIP แล้วย้ายโฟลเดอร์ไปไว้ที่ <code>C:\ZENTRA</code></b>
+    <div class="warn" style="margin-top:10px">
+      <b>อย่าวางไว้ใน Downloads หรือ Desktop</b>
+      Windows มีข้อจำกัดความยาวชื่อ path ที่ 260 ตัวอักษร ถ้า path ยาวเกินไป
+      การติดตั้งจะพังแบบหาสาเหตุยาก วางที่ <code>C:\ZENTRA</code> ปลอดภัยที่สุด
+    </div>
+  </li>
+  <li>
+    <b>ดับเบิลคลิก <code>INSTALL.bat</code></b><br>
+    ตัวติดตั้งจะทำให้อัตโนมัติทั้งหมด 7 ขั้นตอน:
+    <b>ลง Python 3.11 ให้ถ้าไม่มี</b> → เตรียมพื้นที่ติดตั้ง →
+    <b>ลง WebView2 ให้ถ้าไม่มี</b> → ตั้งค่าเริ่มต้นและตรวจไฟล์โมเดล →
+    <b>ตรวจหาการ์ดจอ NVIDIA เอง</b> → ดาวน์โหลดไลบรารี → ทดสอบโหลดโมเดล AI จริง
+    <div class="note" style="margin-top:10px">
+      <b>ใช้เวลาประมาณ 10–20 นาที</b>
+      ต้องต่ออินเทอร์เน็ตไว้ตลอด ระบบจะดาวน์โหลดประมาณ 500 MB
+      (หรือประมาณ 2.5 GB ถ้าเครื่องมีการ์ดจอ NVIDIA)
+      ระหว่างนี้จะเห็นข้อความวิ่งเยอะ ๆ เป็นเรื่องปกติ
+    </div>
+    <div class="note" style="margin-top:10px">
+      <b>ไม่ต้องกดอะไรระหว่างติดตั้ง</b>
+      ตอนลง Python จะไม่มีหน้าต่างเด้งขึ้นมาให้กด (ลงแบบเงียบเฉพาะผู้ใช้นี้
+      จึงไม่ต้องใช้สิทธิ์แอดมิน) แค่รอจนขึ้นว่า "ติดตั้งสำเร็จ!"
+    </div>
+  </li>
+  <li>
+    <b>รอจนขึ้นข้อความ “ติดตั้งสำเร็จ!”</b><br>
+    ถ้าขึ้นข้อความสีแดงว่า <i>[ผิดพลาด]</i> ให้อ่านข้อความนั้น — บอกวิธีแก้ไว้แล้ว
+    ส่วนใหญ่แค่รัน <code>INSTALL.bat</code> ใหม่อีกครั้งก็ผ่าน
+  </li>
+</ol>
+
+<div class="note">
+  <b>รัน INSTALL.bat ซ้ำได้เสมอ ไม่เสียหาย</b>
+  ถ้าอินเทอร์เน็ตหลุดกลางทาง หรือติดตั้งไม่จบ ให้กดรันใหม่ได้เลย
+  ของที่โหลดไปแล้วจะไม่โหลดซ้ำ และ <b>การตั้งค่าที่คุณแก้ไว้จะไม่ถูกทับ</b>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="firstrun"><span class="num">3</span>เปิดใช้งานครั้งแรก</h2>
+
+<div class="big">
+  เปิดโปรแกรมด้วยการดับเบิลคลิก &nbsp; <code>ZENTRA.bat</code>
+</div>
+
+<p>ครั้งต่อ ๆ ไปกดแค่ <code>ZENTRA.bat</code> ไฟล์เดียวพอ <b>ไม่ต้องติดตั้งซ้ำอีก</b></p>
+
+<h3>สิ่งที่จะเกิดขึ้น</h3>
+<ol class="steps">
+  <li>มี<b>หน้าต่างสีดำ</b> (console) เปิดขึ้นมาก่อน — บอกว่าใช้โหมด CPU หรือ NVIDIA
+    <div class="warn" style="margin-top:10px">
+      <b>ห้ามปิดหน้าต่างสีดำนี้</b>
+      หน้าต่างนี้คือตัวรันโปรแกรมจริง ๆ ปิดเมื่อไหร่โปรแกรมดับทันที
+      และถ้ามีปัญหาอะไร ข้อความบอกสาเหตุจะขึ้นตรงนี้ ย่อเก็บไว้ได้ แต่อย่าปิด
+    </div>
+  </li>
+  <li>จากนั้นหน้าต่างโปรแกรมจะเปิด<b>เต็มจอ</b> ขึ้นหน้า splash ของ ZENTRA</li>
+  <li><b>ครั้งแรกจะช้าเป็นพิเศษ</b> เพราะต้องโหลดโมเดล AI เข้าหน่วยความจำ รอสักครู่ ยังไม่ค้าง</li>
+</ol>
+
+<h3>สำคัญ: ครั้งแรกจะยังไม่มีโมเดลใดทำงาน</h3>
+
+<div class="warn">
+  <b>สถานะโมเดลบนแดชบอร์ดจะเป็นสีเทาทั้งหมด — ไม่ใช่อาการเสีย</b>
+  ระบบ<b>ตั้งใจ</b>ไม่เปิดโมเดลใดให้อัตโนมัติ เพราะกล้องแต่ละตัวมีหน้าที่ต่างกัน
+  (บางจุดต้องตรวจหมวกนิรภัย บางจุดแค่กันคนเข้าเขตอันตราย)
+  <b>คุณต้องเลือกเองว่ากล้องแต่ละตัวจะให้ตรวจอะไร</b> ระบบจะได้ไม่แจ้งเตือนเรื่องที่คุณไม่ได้ต้องการ
+</div>
+
+<p>วิธีเปิดโมเดล:</p>
+<ol class="steps">
+  <li>ไปที่หน้า <b>“กล้อง”</b></li>
+  <li>กดปุ่มตั้งค่าหน้าที่ (ไอคอนสไลเดอร์) ของกล้องที่ต้องการ</li>
+  <li>ติ๊กเลือกสิ่งที่ต้องการให้ตรวจ: <b>อุปกรณ์นิรภัย (PPE)</b> / <b>พื้นที่หวงห้าม</b> / <b>การล้ม</b></li>
+  <li>บันทึก แล้วกลับมาดูแดชบอร์ด — สถานะจะเปลี่ยนเป็น<b>สีเขียว</b>เฉพาะตัวที่เลือก</li>
+</ol>
+
+<div class="note">
+  <b>เลือกเท่าที่จำเป็น จะเร็วกว่า</b>
+  ยิ่งเปิดหลายโมเดล เครื่องยิ่งทำงานหนักและภาพยิ่งกระตุก
+  โดยเฉพาะบนเครื่องที่ไม่มีการ์ดจอ NVIDIA — เปิดเฉพาะที่ต้องใช้จริงจะลื่นกว่ามาก
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="exit"><span class="num">4</span>วิธีออกจากโปรแกรม</h2>
+
+<div class="danger">
+  <b>อ่านหัวข้อนี้ก่อนเปิดโปรแกรมครั้งแรก</b>
+  ZENTRA เปิดแบบ<b>เต็มจอ (kiosk)</b> — ตั้งใจออกแบบให้พนักงานหน้างานปิดไม่ได้โดยบังเอิญ
+  <b>จึงไม่มีปุ่ม X และไม่มีแถบชื่อหน้าต่างของ Windows</b> ถ้าไม่รู้วิธีออกจะรู้สึกเหมือนเครื่องค้าง
+</div>
+
+<p>ออกจากโปรแกรมได้ 2 วิธี:</p>
+<div class="tablewrap">
+<table>
+  <tr><th>วิธี</th><th>ทำอย่างไร</th></tr>
+  <tr><td>ปุ่มในโปรแกรม</td><td>กดปุ่มออกที่ <b>มุมขวาบน</b> ของหน้าจอโปรแกรม (วิธีปกติ)</td></tr>
+  <tr><td><kbd>F11</kbd></td><td>ออกจากโหมดเต็มจอ จะได้หน้าต่างธรรมดาที่มีปุ่ม X ให้กดปิด</td></tr>
+</table>
+</div>
+
+<div class="note">
+  <b>ปิดแล้วอย่าเพิ่งรีบเปิดใหม่</b>
+  ตอนปิด ระบบต้องคืนกล้องและส่งการแจ้งเตือนที่ค้างอยู่ให้เสร็จก่อน ใช้เวลาไม่กี่วินาที
+  รอให้หน้าต่างสีดำปิดไปเองจนสุด แล้วค่อยเปิดใหม่
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="camera"><span class="num">5</span>การตั้งค่ากล้อง</h2>
+
+<p>เลือกแหล่งภาพได้จากหน้า <b>“แหล่งสัญญาณ / กล้อง”</b> ในตัวโปรแกรม</p>
+
+<div class="tablewrap">
+<table>
+  <tr><th>แหล่งภาพ</th><th>วิธีใช้</th></tr>
+  <tr><td>กล้อง USB</td><td>เสียบกล้องก่อนเปิดโปรแกรม แล้วเลือกกล้องในหน้าตั้งค่า<br>ถ้ามีหลายตัว ให้ลองเปลี่ยนหมายเลขกล้อง (0, 1, 2 …)</td></tr>
+  <tr><td>กล้อง IP / RTSP</td><td>ใส่ URL เช่น <code>rtsp://user:pass@192.168.1.50:554/stream1</code></td></tr>
+  <tr><td>ไฟล์วิดีโอ</td><td>กดปุ่มเลือกไฟล์ แล้วเลือกไฟล์ <code>.mp4</code> / <code>.avi</code> / <code>.mov</code><br>เหมาะกับการทดลองใช้งานก่อนติดตั้งกล้องจริง</td></tr>
+</table>
+</div>
+
+<div class="note">
+  <b>มุมกล้องมีผลกับความแม่นยำมาก</b>
+  ติดกล้องให้เห็นคน<b>เต็มตัว</b> ตั้งแต่ศีรษะถึงเท้า ระบบตรวจหมวกนิรภัยและการล้ม
+  จากสัดส่วนร่างกาย ถ้าเห็นแค่ครึ่งตัวหรือมุมกดจากด้านบนมากเกินไป ความแม่นยำจะตกลง
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="zone"><span class="num">6</span>การตั้งค่าโซนพื้นที่อันตราย</h2>
+
+<p>ไปที่หน้า <b>“โซน / Zone Editor”</b> เพื่อวาดพื้นที่ที่ไม่อนุญาตให้คนเข้า
+(เช่น รอบเครื่องจักร ปากบ่อ พื้นที่กำลังก่อสร้าง) เมื่อมีคนเข้าไปในโซน ระบบจะแจ้งเตือน</p>
+
+<ol class="steps">
+  <li>เปิดหน้าโซน จะเห็นภาพจากกล้องเป็นพื้นหลัง</li>
+  <li>คลิกไปตามมุมของพื้นที่ที่ต้องการ ทีละจุด จนได้รูปหลายเหลี่ยมปิดล้อมพื้นที่นั้น</li>
+  <li>กดบันทึก — โซนจะถูกเก็บไว้และใช้งานทันที ไม่ต้องเปิดโปรแกรมใหม่</li>
+</ol>
+
+<div class="note">
+  <b>โซนผูกกับมุมกล้อง</b>
+  ถ้าขยับหรือหันกล้อง ต้องกลับมาวาดโซนใหม่ เพราะพิกัดที่วาดไว้อ้างอิงกับภาพเดิม
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="features"><span class="num">7</span>ความสามารถของระบบ</h2>
+
+<div class="tablewrap">
+<table>
+  <tr><th>ระบบ</th><th>ตรวจจับอะไร</th></tr>
+  <tr><td>อุปกรณ์นิรภัย (PPE)</td><td>ตรวจว่าคนในภาพสวมหมวกนิรภัยและเสื้อสะท้อนแสงครบหรือไม่<br>ถ้าไม่ครบจะแจ้งเตือน</td></tr>
+  <tr><td>โซนอันตราย</td><td>ตรวจว่ามีคนเข้าไปในพื้นที่ที่วาดโซนไว้หรือไม่</td></tr>
+  <tr><td>การล้ม</td><td>ตรวจจับท่าทางคนล้มจากการเคลื่อนไหวย้อนหลังประมาณ 1 วินาที<br>รองรับหลายคนพร้อมกัน</td></tr>
+</table>
+</div>
+
+<p>หน้า <b>แดชบอร์ด</b> แสดงสถานะสด ๆ ของทั้ง 3 ระบบพร้อมภาพจากกล้อง
+ส่วนหน้า <b>ประวัติ</b> เก็บเหตุการณ์ย้อนหลังพร้อมภาพ ณ วินาทีที่ตรวจพบ และส่งออกรายงานได้</p>
+
+<div class="note">
+  <b>สีสถานะบนแดชบอร์ด</b>
+  <b>เทา</b> = ยังไม่เริ่มทำงาน · <b>เขียว</b> = ทำงานปกติ · <b>เหลือง/แดง</b> = พบเหตุการณ์
+  ถ้าเปิดโปรแกรมแล้วยังเป็นสีเทาอยู่ แปลว่ายังไม่ได้เลือกแหล่งภาพ หรือระบบยังเริ่มไม่สำเร็จ
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="line"><span class="num">8</span>การแจ้งเตือนผ่าน LINE และ PDPA</h2>
+
+<p>ระบบส่งการแจ้งเตือนเข้ากลุ่ม LINE ได้ (ต้องต่ออินเทอร์เน็ต) ตั้งค่าโดยแก้ไฟล์
+<code>backend\.env</code> เปิดด้วย Notepad ได้เลย</p>
+
+<div class="card">
+  <code>LINE_OA_CHANNEL_ACCESS_TOKEN=</code> ← token ของ LINE Official Account<br>
+  <code>LINE_OA_GROUP_SUPERVISOR=</code> ← กลุ่มหัวหน้างาน<br>
+  <code>LINE_OA_GROUP_SAFETY=</code> ← กลุ่มเจ้าหน้าที่ความปลอดภัย<br>
+  <code>LINE_OA_GROUP_EMERGENCY=</code> ← กลุ่มเหตุฉุกเฉิน<br>
+  <code>LINE_UPLOAD_IMAGES=false</code> ← <b>ส่งภาพไปด้วยหรือไม่</b>
+</div>
+
+<div class="danger">
+  <b>ข้อควรระวังเรื่อง PDPA (ข้อมูลส่วนบุคคล)</b>
+  ค่าเริ่มต้น <code>LINE_UPLOAD_IMAGES=false</code> คือ <b>ไม่ส่งภาพ</b> ส่งแต่ข้อความ —
+  <b>ตั้งใจตั้งไว้แบบนี้</b> เพราะภาพเหตุการณ์มีใบหน้าพนักงานซึ่งเป็นข้อมูลส่วนบุคคล
+  ถ้าจะเปลี่ยนเป็น <code>true</code> ต้องแจ้งพนักงานและขอความยินยอมตามกฎหมาย PDPA ก่อน
+  <br><br>
+  เช่นเดียวกัน ภาพเหตุการณ์ทั้งหมดถูกเก็บไว้ในโฟลเดอร์ <code>data\</code> บนเครื่องนี้
+  ถ้าจะส่งต่อหรือคัดลอกโฟลเดอร์นี้ ให้ระวังเรื่องข้อมูลส่วนบุคคลด้วย
+</div>
+
+<p>แก้ไฟล์ <code>backend\.env</code> เสร็จแล้วต้อง<b>ปิดแล้วเปิดโปรแกรมใหม่</b>ค่าถึงจะมีผล</p>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="trouble"><span class="num">9</span>ปัญหาที่พบบ่อย</h2>
+
+<div class="tablewrap">
+<table>
+  <tr><th>อาการ</th><th>สาเหตุและวิธีแก้</th></tr>
+
+  <tr>
+    <td>ขึ้นแถบ<br>“⚠ ระบบ AI ไม่ทำงาน<br>— ไม่มีการตรวจจับใด ๆ”</td>
+    <td>
+      <b>ระบบตรวจจับไม่ทำงานเลย ไม่ใช่แค่แสดงผลผิด</b> — ระหว่างนี้จะไม่มีการแจ้งเตือนใด ๆ ทั้งสิ้น<br>
+      สาเหตุที่พบบ่อยคือไฟล์โมเดล AI หายไปจากโฟลเดอร์ <code>backend\models\</code>
+      (มักเกิดจากแตกไฟล์ ZIP ไม่ครบ)<br>
+      <b>แก้:</b> รัน <code>INSTALL.bat</code> ใหม่ — จะตรวจไฟล์โมเดลให้
+      ถ้ายังไม่หาย ให้แตกไฟล์ ZIP ต้นฉบับใหม่ทั้งหมด แล้วดูข้อความในหน้าต่างสีดำ
+    </td>
+  </tr>
+
+  <tr>
+    <td>สถานะโมเดล<br>เป็นสีเทาหมด<br>ไม่ตรวจจับอะไรเลย</td>
+    <td>
+      <b>ปกติสำหรับการใช้งานครั้งแรก ไม่ใช่อาการเสีย</b> — ระบบตั้งใจไม่เปิดโมเดลให้อัตโนมัติ<br>
+      <b>แก้:</b> ไปหน้า "กล้อง" แล้วเลือกว่าจะให้ตรวจอะไรบ้าง
+      (ดูหัวข้อ <a href="#firstrun" style="color:var(--accent)">เปิดใช้งานครั้งแรก</a>)
+    </td>
+  </tr>
+
+  <tr>
+    <td>เปิดแล้วเจอ<br>จอดำ/จอว่างเปล่า<br>ปิดก็ไม่ได้</td>
+    <td>
+      เครื่องไม่มี <b>WebView2</b> (ตัวแสดงผลหน้าจอ) — ปกติ <code>INSTALL.bat</code> ลงให้แล้ว
+      แต่ถ้าตอนนั้นเน็ตหลุดอาจลงไม่สำเร็จ<br>
+      <b>แก้:</b> กด <kbd>F11</kbd> หรือ <kbd>Alt</kbd>+<kbd>F4</kbd> เพื่อออกก่อน
+      แล้วดับเบิลคลิก <code>setup\MicrosoftEdgeWebview2Setup.exe</code> ที่มาพร้อมโปรแกรม
+    </td>
+  </tr>
+
+  <tr>
+    <td>ภาพจากกล้อง<br>เป็นสีดำ</td>
+    <td>
+      มีโปรแกรมอื่นใช้กล้องอยู่ (Teams, Zoom, กล้อง Windows) — Windows ให้ใช้กล้องได้ทีละโปรแกรม<br>
+      <b>แก้:</b> ปิดโปรแกรมนั้นก่อน หรือลองเปลี่ยนหมายเลขกล้องเป็น 1 หรือ 2<br>
+      และตรวจสิทธิ์ที่ Settings → Privacy → Camera ให้เปิดอนุญาต
+    </td>
+  </tr>
+
+  <tr>
+    <td>ขึ้นว่าติดตั้ง<br>Python ไม่สำเร็จ</td>
+    <td>
+      ปกติ <code>INSTALL.bat</code> ลง Python ให้เอง ถ้าไม่สำเร็จมักเป็นเพราะนโยบายความปลอดภัยขององค์กร<br>
+      <b>แก้:</b> ดับเบิลคลิก <code>setup\python-3.11.9-amd64.exe</code> เอง
+      แล้ว<b>ติ๊กช่อง "Add python.exe to PATH"</b> ให้แน่ใจ
+      จากนั้นรัน <code>INSTALL.bat</code> ใหม่
+    </td>
+  </tr>
+
+  <tr>
+    <td>โปรแกรมช้า /<br>ภาพกระตุก</td>
+    <td>
+      เครื่องไม่มีการ์ดจอ NVIDIA จึงใช้ CPU ประมวลผล — <b>เป็นเรื่องปกติ ไม่ใช่อาการเสีย</b><br>
+      ยังตรวจจับได้ครบทุกอย่าง แต่ภาพจะไม่ลื่นเท่าเครื่องที่มีการ์ดจอ<br>
+      <b>แก้:</b> ปิดโปรแกรมอื่นที่กินเครื่อง ถ้าต้องการความลื่นจริง ๆ ควรใช้เครื่องที่มีการ์ดจอ NVIDIA
+    </td>
+  </tr>
+
+  <tr>
+    <td>ติดตั้งค้าง /<br>ดาวน์โหลดไม่จบ</td>
+    <td>
+      อินเทอร์เน็ตหลุด หรือไฟร์วอลล์ของบริษัทบล็อก<br>
+      <b>แก้:</b> ปิดหน้าต่างแล้วรัน <code>INSTALL.bat</code> ใหม่ — ของที่โหลดไปแล้วจะไม่โหลดซ้ำ
+    </td>
+  </tr>
+
+  <tr>
+    <td>ตัวหนังสือใน<br>หน้าต่างสีดำ<br>เป็นสี่เหลี่ยม</td>
+    <td>
+      Console ของ Windows แสดงภาษาไทยไม่ครบ — <b>ไม่กระทบการทำงาน</b>
+      ตัวโปรแกรมจริงแสดงภาษาไทยได้ปกติ ไม่ต้องแก้อะไร
+    </td>
+  </tr>
+</table>
+</div>
+
+<div class="note">
+  <b>ถ้าแก้ตามนี้แล้วยังไม่หาย</b>
+  ถ่ายภาพ<b>ข้อความในหน้าต่างสีดำ</b> ส่งให้ผู้ดูแลระบบ — ข้อความตรงนั้นบอกสาเหตุจริงเสมอ
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<h2 id="uninstall"><span class="num">10</span>การถอนการติดตั้ง</h2>
+
+<p><b>ลบโฟลเดอร์ <code>C:\ZENTRA</code> ทิ้งทั้งโฟลเดอร์</b> — จบ</p>
+<p>ZENTRA ไม่เขียนอะไรลง Registry และไม่กระจายไฟล์ไปที่อื่นในเครื่อง
+ทุกอย่างรวมถึงไลบรารีที่ดาวน์โหลดมาอยู่ในโฟลเดอร์นี้โฟลเดอร์เดียว</p>
+
+<div class="warn">
+  <b>ก่อนลบ: ข้อมูลจะหายถาวร</b>
+  โฟลเดอร์ <code>data\</code> เก็บประวัติเหตุการณ์ ภาพ และโซนที่วาดไว้ทั้งหมด
+  ถ้ายังต้องใช้ ให้คัดลอกโฟลเดอร์ <code>data\</code> เก็บไว้ก่อน
+  (และระวังเรื่อง PDPA เพราะมีภาพใบหน้าพนักงานอยู่)
+</div>
+
+<p>ส่วน Python 3.11 ถ้าไม่ได้ใช้กับอย่างอื่น ถอนได้จาก Settings → Apps</p>
+
+<footer>
+  ZENTRA Safety AI System — คู่มือการใช้งานภาษาไทย<br>
+  เอกสารนี้เปิดแบบออฟไลน์ได้ ไม่ต้องต่ออินเทอร์เน็ต
+</footer>
+
+</div>
+</body>
+</html>

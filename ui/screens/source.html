@@ -1,0 +1,261 @@
+<div class="source-screen">
+
+  <!-- Top bar with logo -->
+  <div class="source-topbar">
+    <div class="navbar-brand">
+      <span class="brand-mark">Z</span>
+      <div>
+        <span class="brand-text">ZENTRA</span>
+        <span class="brand-sub">Safety AI System</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Centered: brand presentation beside the connection card. This is the first
+       screen an operator meets, so the product identifies itself here rather than
+       opening straight onto an unlabelled form. -->
+  <div class="source-body">
+    <div class="source-hero">
+      <span class="brand-mark source-hero-mark">Z</span>
+      <div class="source-hero-title">ZENTRA</div>
+      <div class="source-hero-sub">ระบบ AI เฝ้าระวังความปลอดภัยในโรงงาน</div>
+      <div class="source-hero-line"></div>
+      <div class="source-hero-features">
+        <div><span class="source-hero-dot" style="background:var(--yellow)"></span>ตรวจอุปกรณ์นิรภัย</div>
+        <div><span class="source-hero-dot" style="background:var(--orange,#f59e0b)"></span>เฝ้าพื้นที่หวงห้าม</div>
+        <div><span class="source-hero-dot" style="background:var(--red)"></span>ตรวจจับการล้ม</div>
+      </div>
+      <div class="source-hero-foot">ประมวลผลในเครื่อง · ข้อมูลไม่ออกนอกองค์กร (PDPA)</div>
+    </div>
+
+    <div class="source-card">
+      <div class="source-heading">เลือกแหล่งภาพ</div>
+
+      <!-- Option 1: Webcam -->
+      <div class="radio-option selected" data-value="webcam" onclick="selectSource(this)">
+        <div class="radio-dot"></div>
+        <span class="radio-label">Webcam (USB)</span>
+      </div>
+
+      <!-- Option 2: RTSP -->
+      <div class="radio-option" data-value="rtsp" onclick="selectSource(this)">
+        <div class="radio-dot"></div>
+        <span class="radio-label">RTSP Stream</span>
+      </div>
+      <!-- Three slots, because a site has several cameras and connecting them one
+           at a time (then editing the rest on another screen) is the long way
+           round. Blank rows are simply skipped. -->
+      <div class="source-sub-input" id="rtsp-input">
+        <div class="rtsp-rows">
+          <div class="rtsp-row">
+            <span class="rtsp-num">1</span>
+            <input class="input" id="rtsp-url-0" type="text" spellcheck="false"
+                   placeholder="rtsp://admin:รหัสผ่าน@192.168.1.4:554/Streaming/Channels/101">
+          </div>
+          <div class="rtsp-row">
+            <span class="rtsp-num">2</span>
+            <input class="input" id="rtsp-url-1" type="text" spellcheck="false"
+                   placeholder="rtsp://admin:รหัสผ่าน@192.168.1.3:554/Streaming/Channels/101">
+          </div>
+          <div class="rtsp-row">
+            <span class="rtsp-num">3</span>
+            <input class="input" id="rtsp-url-2" type="text" spellcheck="false"
+                   placeholder="rtsp://admin:รหัสผ่าน@192.168.1.2:554/Streaming/Channels/101">
+          </div>
+        </div>
+        <div class="rtsp-note">
+          กรอกกี่ช่องก็ได้ ช่องว่างจะถูกข้าม · พอร์ต RTSP คือ <b>554</b> (ไม่ใช่ 8000 ที่เห็นใน SADP)<br>
+          ถ้ารหัสผ่านมี <b>@</b> ให้พิมพ์เป็น <b>%40</b>
+        </div>
+      </div>
+
+      <!-- Option 3: File -->
+      <div class="radio-option" data-value="file" onclick="selectSource(this)">
+        <div class="radio-dot"></div>
+        <span class="radio-label">ไฟล์คอมพิวเตอร์</span>
+      </div>
+      <div class="source-sub-input" id="file-input">
+        <div class="input-row">
+          <input class="input" id="file-path" type="text" readonly placeholder="เลือกไฟล์วิดีโอ...">
+          <button class="btn btn-ghost btn-sm" onclick="browseFile()">เลือก</button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="source-actions">
+        <div class="source-error" id="source-error"></div>
+        <button class="btn btn-primary btn-lg w-full" onclick="connectSource()" id="connect-btn">
+          เชื่อมต่อ
+        </button>
+        <button class="btn btn-ghost btn-lg w-full" onclick="startDemo()" id="demo-btn"
+                style="margin-top:8px;">
+          👁 ดูตัวอย่างหน้าตาโปรแกรม (Demo)
+        </button>
+        <div class="source-hint" style="margin-top:6px;opacity:.7;font-size:13px;text-align:center;">
+          เปิดดูหน้าจอ/เมนูของระบบ โดยไม่ต้องต่อกล้อง
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var _selectedSource = 'webcam';
+
+function selectSource(el) {
+  document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedSource = el.dataset.value;
+
+  // Show/hide sub-inputs
+  ['rtsp-input','file-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('visible');
+  });
+  const subMap = { rtsp: 'rtsp-input', file: 'file-input' };
+  if (subMap[_selectedSource]) {
+    document.getElementById(subMap[_selectedSource]).classList.add('visible');
+  }
+  document.getElementById('source-error').textContent = '';
+}
+
+async function browseFile() {
+  try {
+    const path = await window.pywebview.api.open_file_dialog();
+    if (path) document.getElementById('file-path').value = path;
+  } catch (_) {
+    // pywebview not available in browser test mode
+    document.getElementById('file-path').value = 'test_video.mp4';
+  }
+}
+
+
+function rtspUrls() {
+  return [0, 1, 2]
+    .map(i => (document.getElementById('rtsp-url-' + i).value || '').trim())
+    .map((u, i) => ({ url: u, idx: i }))
+    .filter(x => x.url);
+}
+
+// Persist the entered cameras into the registry BEFORE starting them. The
+// registry is what every other screen reads (grid, zones, cameras),
+// so a camera started without being registered would run while appearing
+// nowhere in the app.
+async function saveRtspCameras(entries) {
+  const s = await (await fetch('/api/settings')).json();
+  const prev = s.cameras || {};
+  const next = {};
+  entries.forEach((e, n) => {
+    const id = 'cam' + n;
+    next[id] = Object.assign(
+      { roles: ['ppe'], ppe_items: ['helmet', 'vest'] },
+      prev[id] || {},
+      { name: 'กล้อง #' + (n + 1), source: 'rtsp', rtsp_url: e.url,
+        webcam_index: 0, video_file_path: '' });
+  });
+  s.cameras = next;
+  await fetch('/api/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(s),
+  });
+  return Object.keys(next);
+}
+
+async function connectSource() {
+  const btn = document.getElementById('connect-btn');
+  const errEl = document.getElementById('source-error');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'กำลังเชื่อมต่อ...';
+
+  try {
+    let ids = ['cam0'];
+    const body = { source: _selectedSource, camera_id: 'cam0' };
+
+    if (_selectedSource === 'rtsp') {
+      const entries = rtspUrls();
+      if (!entries.length) throw new Error('กรุณากรอก RTSP URL อย่างน้อย 1 ช่อง');
+      const dup = entries.map(e => e.url).filter((u, i, a) => a.indexOf(u) !== i);
+      // Two slots pointing at one camera produces two tiles of the same picture
+      // and two connections competing for the device — catch it here rather than
+      // letting it look like a bug later.
+      if (dup.length) throw new Error('มี URL ซ้ำกัน — กล้องแต่ละตัวต้องคนละที่อยู่');
+      ids = await saveRtspCameras(entries);
+    } else if (_selectedSource === 'file') {
+      body.video_file_path = document.getElementById('file-path').value.trim();
+    }
+
+    const results = [];
+    const entered = _selectedSource === 'rtsp' ? rtspUrls() : [];
+    for (let n = 0; n < ids.length; n++) {
+      const id = ids[n];
+      // Send the URL explicitly as well as registering it. The server can fall
+      // back to the registry, but the request that starts a camera should say
+      // what it is starting rather than depend on a write that just happened.
+      const b = _selectedSource === 'rtsp'
+        ? { source: 'rtsp', camera_id: id, rtsp_url: (entered[n] || {}).url || '' }
+        : body;
+      const res = await fetch('/api/pipeline/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(b),
+      });
+      const data = await res.json();
+      results.push({ id, ok: !!data.ok, error: data.error });
+    }
+
+    const good = results.filter(r => r.ok);
+    if (!good.length) {
+      errEl.textContent = results[0].error || 'ไม่พบอุปกรณ์ / ไม่สามารถเชื่อมต่อได้';
+    } else {
+      // Report a partial success honestly instead of moving on as if every
+      // camera came up — a silently missing camera is a blind spot on a safety
+      // system, and the operator is standing right here able to fix it.
+      const bad = results.filter(r => !r.ok);
+      if (bad.length) ZENTRA.toast('เชื่อมต่อได้ ' + good.length + '/' + results.length
+                                   + ' กล้อง — ตรวจที่เหลือในหน้า "กล้อง"', 'warn');
+      ZENTRA.state.pipeline.running = true;
+      ZENTRA.state.pipeline.source = _selectedSource;
+      ZENTRA.connectWS();
+      ZENTRA.startStatusPoll();
+      ZENTRA.navigate('dashboard');
+    }
+  } catch (e) {
+    errEl.textContent = e.message || 'ไม่สามารถเชื่อมต่อกับระบบได้';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'เชื่อมต่อ';
+}
+
+function startDemo() {
+  // UI-preview only: open the app's dashboard so the screens/menus can be browsed
+  // without connecting a camera or playing any video. No pipeline, no network call
+  // (so it can't fail) — the video area simply stays empty / "offline".
+  ZENTRA.state.pipeline.running = false;
+  ZENTRA.navigate('dashboard');
+}
+
+function init_source() {
+  fetch('/api/settings').then(r => r.json()).then(s => {
+    // Fill the three slots from the cameras already registered, so returning to
+    // this screen shows the site as it stands instead of three empty boxes the
+    // operator has to retype.
+    const cams = s.cameras || {};
+    const urls = Object.keys(cams).sort()
+      .map(id => (cams[id] || {}).rtsp_url)
+      .filter(u => u);
+    urls.slice(0, 3).forEach((u, i) => {
+      const el = document.getElementById('rtsp-url-' + i);
+      if (el) el.value = u;
+    });
+
+    // Pre-select the source that is actually configured. With RTSP cameras in
+    // the registry that IS the site's source, regardless of the legacy
+    // single-camera `camera.source` field.
+    const src = urls.length ? 'rtsp' : ((s.camera || {}).source || 'webcam');
+    const el = document.querySelector(`.radio-option[data-value="${src}"]`);
+    if (el) selectSource(el);
+  }).catch(() => {});
+}
+</script>

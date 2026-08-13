@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <rect width="640" height="480" fill="#080f18"/>
+  <text x="320" y="230" text-anchor="middle" fill="rgba(255,255,255,0.15)"
+        font-family="Kanit,sans-serif" font-size="18" font-weight="500">
+    ไม่มีสัญญาณภาพ
+  </text>
+  <text x="320" y="258" text-anchor="middle" fill="rgba(255,255,255,0.08)"
+        font-family="Kanit,sans-serif" font-size="13">
+    เชื่อมต่อกล้องก่อนเริ่มใช้งาน
+  </text>
+</svg>

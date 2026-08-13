@@ -1,0 +1,898 @@
+<div class="app-layout">
+  <div id="navbar-mount"></div>
+
+  <div class="app-body settings-layout">
+
+    <!-- Left Sidebar -->
+    <div class="settings-sidebar">
+      <div class="settings-menu-item active" data-section="line"    onclick="showSection('line',   this)">การแจ้งเตือน Line</div>
+      <div class="settings-menu-item"        data-section="ai"      onclick="showSection('ai',     this)">การตรวจจับ AI</div>
+      <div class="settings-menu-item"        data-section="camera"  onclick="showSection('camera', this)">กล้องและวิดีโอ</div>
+      <div class="settings-menu-item"        data-section="data"    onclick="showSection('data',   this)">การจัดการข้อมูล</div>
+      <div class="settings-menu-item"        data-section="about"   onclick="showSection('about',  this)">การจัดการระบบ</div>
+      <div class="settings-status-bar">
+        <div class="status-dot off" id="set-status-dot"></div>
+        <span id="set-status-txt" style="color:var(--text-muted)">—</span>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="settings-content" id="settings-content">
+      <!-- injected by showSection() -->
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── Section Templates ─────────────────────────── -->
+<template id="tpl-line">
+  <div class="settings-section-title">การแจ้งเตือน LINE OA</div>
+  <div class="settings-section-sub">ตั้งค่า Token และกลุ่มที่รับการแจ้งเตือนแต่ละระดับ</div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">โทเคน LINE (Channel Access Token)</div>
+    <div class="input-row">
+      <input class="input" id="line-token" type="password" placeholder="วางโทเคนที่นี่...">
+      <button class="btn btn-ghost btn-sm" type="button" onclick="toggleToken()">แสดง</button>
+    </div>
+    <!-- Saved-state indicator. The token is a bearer credential and is NEVER sent
+         back to the browser (redacted), so the field is always blank on reload —
+         this line makes it obvious a token IS stored, so an empty box doesn't read
+         as "token disappeared". -->
+    <div id="line-token-status" class="text-xs" style="margin-top:6px;min-height:15px"></div>
+    <div class="toggle-wrap mt-2">
+      <label class="toggle"><input type="checkbox" id="tog-upload-img">
+      <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      <span class="text-sub">แนบภาพหลักฐานไปกับ LINE — <b>ปิดอยู่ (แนะนำตาม PDPA)</b> ส่งเป็นข้อความล้วน<br>
+      <span class="text-xs" style="color:var(--orange)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>ถ้าเปิด: ภาพคนจะถูกส่งผ่านโฮสต์ภายนอก (catbox.moe) — ออกนอกเครื่อง</span></span>
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px">
+      <div class="settings-group-title" style="margin:0">กลุ่มรับการแจ้งเตือน</div>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="addLineGroup()">＋ เพิ่มกลุ่ม</button>
+    </div>
+    <div class="text-muted text-xs" style="margin-bottom:10px">ทุกการแจ้งเตือน (ทุกระดับ) จะถูกส่งไปยังทุกกลุ่มที่เปิดใช้งาน</div>
+    <table class="alert-table w-full">
+      <thead>
+        <tr><th>ชื่อกลุ่ม</th><th>กลุ่มที่ส่ง (Group ID)</th><th>หน่วงเวลา</th><th>เปิด</th><th></th></tr>
+      </thead>
+      <tbody id="line-groups-body"></tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button class="btn btn-primary" onclick="saveSettings()">บันทึกการตั้งค่า</button>
+    <button class="btn btn-ghost"   onclick="resetSettings()">รีเซ็ต</button>
+  </div>
+  <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
+</template>
+
+<template id="tpl-ai">
+  <div class="settings-section-title">การตรวจจับ AI</div>
+  <div class="settings-section-sub">ปรับค่าเกณฑ์และความไวของโมดูลต่าง ๆ</div>
+  <div class="settings-group">
+    <div class="flex flex-col gap-3">
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="input-label">ความเชื่อมั่นการตรวจ PPE</span>
+          <span class="text-accent font-600" id="val-ppe">0.30</span>
+        </div>
+        <input type="range" min="0.25" max="0.95" step="0.01" value="0.30" id="sl-ppe"
+               oninput="document.getElementById('val-ppe').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="input-label">ความมั่นใจขั้นต่ำก่อนแจ้งเตือน</span>
+          <span class="text-accent font-600" id="val-abstain">0.35</span>
+        </div>
+        <input type="range" min="0" max="0.9" step="0.05" value="0.35" id="sl-abstain"
+               oninput="document.getElementById('val-abstain').textContent=parseFloat(this.value).toFixed(2)">
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.55">
+          กล้องที่มองเห็นไม่ชัดพอ (เช่น เห็นแค่ด้านหลังคน จึงไม่เห็นเสื้อกั๊ก)
+          จะ<b style="color:var(--text)">ไม่แจ้งเตือน</b> แทนที่จะเดา —
+          ปล่อยให้กล้องมุมที่เห็นชัดเป็นคนตัดสิน<br>
+          ยิ่งสูง = แจ้งเตือนผิดน้อยลง แต่เสี่ยงตรวจไม่เจอมากขึ้น · <b>0 = ปิดการทำงาน</b>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="input-label">ยืนยันการล้ม (จำนวนเฟรม)</span>
+          <span class="text-accent font-600" id="val-frames">6</span>
+        </div>
+        <input type="range" min="1" max="20" step="1" value="6" id="sl-frames"
+               oninput="document.getElementById('val-frames').textContent=this.value">
+      </div>
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="input-label">อัตราส่วนกล่อง (แนวนอน)</span>
+          <span class="text-accent font-600" id="val-ratio">0.72</span>
+        </div>
+        <input type="range" min="0.50" max="0.95" step="0.01" value="0.72" id="sl-ratio"
+               oninput="document.getElementById('val-ratio').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+      <!-- The load/save code has always read and written #sel-fall-mode, but the
+           control itself was never in this template — so cfg.FALL_MODE could not
+           be changed from the app at all, and a save silently left it alone. -->
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="input-label">วิธีตัดสินการล้ม</span>
+        </div>
+        <select class="input w-full" id="sel-fall-mode">
+          <option value="hybrid">ผสม (แนะนำ) — ใช้ท่าทาง + การเคลื่อนไหว</option>
+          <option value="pose">ท่าทางอย่างเดียว — ต้องเห็นตัวคนชัด</option>
+          <option value="yolo">การเคลื่อนไหวอย่างเดียว — ใช้เมื่อคนอยู่ไกล</option>
+        </select>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.55">
+          <b>ผสม</b> แจ้งเตือนเมื่อวิธีใดวิธีหนึ่งยืนยัน — จับได้ครอบคลุมที่สุด<br>
+          เลือกอย่างใดอย่างหนึ่งเมื่อต้องการลดการแจ้งเตือนผิดในสภาพแวดล้อมเฉพาะ
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-primary mt-2" onclick="saveSettings()">บันทึก</button>
+  <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
+</template>
+
+<template id="tpl-camera">
+  <div class="settings-section-title">กล้องและวิดีโอ</div>
+  <div class="settings-section-sub">ตั้งค่าแหล่งภาพและการแสดงผล</div>
+  <div class="settings-group">
+    <label class="input-label">แหล่งภาพปัจจุบัน</label>
+    <!-- One row per REGISTERED camera, with its live state. This used to be a
+         single word read from settings.camera.source — a leftover from when the
+         app handled one camera — so a site running three RTSP streams was told
+         its source was "webcam". -->
+    <div id="cur-source-list" class="mb-3"></div>
+    <button class="btn btn-outline btn-sm mb-3" onclick="changeSource()">เปลี่ยนแหล่งภาพ</button>
+    <label class="input-label">หมายเลข Webcam (USB)</label>
+    <input class="input mb-2" id="cam-idx" type="number" value="0" min="0" max="9" style="width:80px">
+    <div class="toggle-wrap mt-2">
+      <label class="toggle"><input type="checkbox" id="flip-h" checked>
+      <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      <span class="text-sub">พลิกภาพแนวนอน (Mirror)</span>
+    </div>
+  </div>
+  <button class="btn btn-primary mt-2" onclick="saveSettings()">บันทึก</button>
+  <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
+</template>
+
+<template id="tpl-data">
+  <div class="settings-section-title">ข้อมูลและการเทรนโมเดล</div>
+  <div class="settings-section-sub">เก็บภาพอัตโนมัติขณะใช้งาน → label ให้ถูก → เทรนให้แม่นขึ้น</div>
+
+  <!-- Collected data -->
+  <div class="settings-group">
+    <div class="settings-group-title">เก็บภาพจากกล้องหน้างาน</div>
+    <div class="card">
+      <div class="toggle-wrap">
+        <label class="toggle"><input type="checkbox" id="tog-collect" onchange="saveSettings()">
+        <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        <span class="text-sub">เก็บภาพอัตโนมัติขณะกล้องทำงาน — บันทึกภาพ + label ที่โมเดลเดาไว้ลงเครื่อง
+        เพื่ออัปโหลดไปแก้ label บน Roboflow แล้ว fine-tune กับหน้างานจริง</span>
+      </div>
+      <div class="input-row mt-2" style="align-items:center;gap:8px">
+        <span class="text-sub text-sm">เก็บภาพได้ไม่เกิน 1 รูปทุก</span>
+        <input class="input" id="collect-interval" type="number" min="2" max="600" step="1"
+               style="width:80px" onchange="saveSettings()">
+        <span class="text-sub text-sm">วินาที · ภาพซ้ำ ๆ จะถูกกรองทิ้งอัตโนมัติ</span>
+      </div>
+      <p class="text-xs text-muted" style="margin-top:8px;line-height:1.6">
+        ใช้กับ<b>ทุกหมวด</b> (PPE / โซน / ปกติ) แยกตัวจับเวลาของใครของมัน — กันไม่ให้เหตุการณ์เดียว
+        กินโควตาไปหลายสิบรูปที่หน้าตาเหมือนกัน · ภาพเก็บอยู่ในเครื่องที่
+        <code>backend/data/collected</code> ไม่ถูกส่งออกจนกว่าจะกดอัปโหลด
+      </p>
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">
+      ข้อมูลที่เก็บสะสม
+      <button class="btn btn-ghost btn-sm" style="float:right;padding:2px 8px" onclick="loadDataStats()">รีเฟรช</button>
+    </div>
+    <div class="card">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sub">PPE violations</span><span class="text-accent" id="ds-ppe">—</span>
+      </div>
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sub">Zone intrusions</span><span class="text-accent" id="ds-zone">—</span>
+      </div>
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sub">Fall events</span><span class="text-accent" id="ds-fall">—</span>
+      </div>
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sub">Normal frames</span><span class="text-accent" id="ds-normal">—</span>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sub">รวม (มี label)</span><span class="text-accent" id="ds-total">—</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-sub">พื้นที่จัดเก็บ</span><span class="text-accent" id="ds-size">—</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-outline btn-sm" onclick="uploadToRoboflow()">Pre-label + อัปโหลดขึ้น Roboflow</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="clearData()">ลบข้อมูลสะสม</button>
+    </div>
+    <p class="text-xs text-muted" style="margin-top:8px;line-height:1.6">
+      ก่อนอัปโหลด ระบบจะรันโมเดลซ้ำแบบละเอียด (TTA + conf ต่ำ) และ<b>เดากล่อง no_helmet / no_vest จากสัดส่วนร่างกาย</b>
+      ให้ — บน Roboflow คุณจึงแค่ <b>แก้</b> กล่อง ไม่ต้องวาดใหม่ทุกกล่อง<br>
+      ⚠️ กล่องที่เดาให้ต้องตรวจทุกกล่อง ถ้ากด approve รัว ๆ โมเดลจะเรียนของปลอม
+    </p>
+  </div>
+
+  <!-- Training -->
+  <div class="settings-group">
+    <div class="settings-group-title">เทรนโมเดล (Fine-tune บน GPU)</div>
+    <div class="text-xs text-muted" style="margin:-4px 0 10px;line-height:1.6"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>การเทรน/อัปโหลดทำบนเครื่อง <b>host ที่มี GPU</b> — เมื่อรันแบบ on-device (Docker CPU) ฟังก์ชันนี้อาจไม่พร้อมใช้งาน</div>
+    <div class="card">
+      <div class="flex gap-3 items-center mb-3" style="flex-wrap:wrap">
+        <label class="input-label" style="margin:0">โมดูล</label>
+        <select class="input" id="train-task" style="width:auto;min-width:120px">
+          <option value="ppe">PPE</option>
+          <option value="fall">Fall</option>
+        </select>
+        <label class="input-label" style="margin:0 0 0 8px">แหล่งข้อมูล</label>
+        <select class="input" id="train-source" style="width:auto;min-width:170px">
+          <option value="local">ข้อมูลในเครื่อง (data/collected)</option>
+          <option value="roboflow">Roboflow (ที่ label แล้ว)</option>
+        </select>
+      </div>
+      <div class="input-row" id="train-project-row" style="display:none;margin-bottom:10px">
+        <input class="input" id="train-project" type="text" placeholder="ชื่อ Roboflow project เช่น zentra-ppe">
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="train-btn" onclick="startTraining()">เริ่มเทรน</button>
+        <button class="btn btn-ghost"   id="train-stop" onclick="stopTraining()" style="display:none">หยุด</button>
+        <span class="text-sub" id="train-state" style="margin-left:auto"></span>
+      </div>
+
+      <!-- progress -->
+      <div id="train-progress" style="display:none;margin-top:12px">
+        <div class="flex justify-between mb-1">
+          <span class="input-label" id="train-epoch-lbl">Epoch —</span>
+          <span class="text-accent font-600" id="train-map">mAP50: —</span>
+        </div>
+        <div class="cat-bar-track"><div class="cat-bar-fill ppe" id="train-bar" style="width:0%"></div></div>
+        <pre id="train-log" style="margin-top:10px;max-height:180px;overflow:auto;background:#0a1626;
+             border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;
+             color:rgba(255,255,255,0.7);white-space:pre-wrap;line-height:1.45"></pre>
+      </div>
+
+      <div style="margin-top:14px">
+        <label class="input-label">โมเดลตรวจจับ PPE (ที่ใช้งานอยู่)</label>
+        <div class="card" style="margin-top:4px;padding:10px 14px">
+          <div class="flex justify-between items-center"><span class="text-sub">โมเดล</span><span class="text-accent font-600">ppe_finetuned.pt (best2 · YOLO11m)</span></div>
+          <div class="flex justify-between items-center" style="margin-top:5px"><span class="text-sub">คลาสที่ตรวจจับ</span><span class="text-accent">11 คลาส · หมวก/เสื้อกั๊ก/แว่น/ถุงมือ/รองเท้า</span></div>
+          <div class="flex justify-between items-center" style="margin-top:5px"><span class="text-sub">อุปกรณ์ประมวลผล</span><span class="text-accent" id="ppe-model-device">—</span></div>
+        </div>
+        <span class="text-xs text-muted" style="display:block;margin-top:6px">รันในเครื่อง (on-device) ตาม PDPA — เปลี่ยนโมเดลได้โดยวางไฟล์ .pt ใน <code>backend/models</code> แล้ว restart<br>
+        <span style="color:var(--orange)">* ยังไม่ได้วัด mAP บนชุดทดสอบที่ไม่มี data leak — อย่าอ้างตัวเลขความแม่นยำจนกว่าจะวัด</span></span>
+      </div>
+
+      <p class="text-xs text-muted" style="margin-top:10px;line-height:1.6">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>ความแม่นยำมาจาก <b>label ที่ถูกต้อง</b> — แนะนำ: เก็บข้อมูล → อัปโหลด Roboflow →
+        แก้ label → เทรนจาก Roboflow ดู TRAINING.md
+      </p>
+    </div>
+  </div>
+
+  <!-- Model accuracy metrics -->
+  <div class="settings-group">
+    <div class="settings-group-title">ความแม่นยำโมเดล (ผลการเทรนล่าสุด)</div>
+    <div class="card" id="metrics-card">
+      <div class="text-muted text-xs" id="metrics-empty">ยังไม่มีผลการเทรน — เทรนโมเดลเพื่อดูค่า mAP / precision / recall</div>
+      <div id="metrics-body" style="display:none">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sub">โมดูล</span><span class="text-accent font-600" id="m-task">—</span>
+        </div>
+        <div class="cat-bar-row"><span class="cat-bar-label" style="width:90px">mAP@50</span>
+          <div class="cat-bar-track"><div class="cat-bar-fill zone" id="m-bar-map50" style="width:0%"></div></div>
+          <span class="cat-bar-count" id="m-map50">—</span></div>
+        <div class="cat-bar-row"><span class="cat-bar-label" style="width:90px">mAP@50-95</span>
+          <div class="cat-bar-track"><div class="cat-bar-fill ppe" id="m-bar-map" style="width:0%"></div></div>
+          <span class="cat-bar-count" id="m-map">—</span></div>
+        <div class="cat-bar-row"><span class="cat-bar-label" style="width:90px">Precision</span>
+          <div class="cat-bar-track"><div class="cat-bar-fill zone" id="m-bar-p" style="width:0%"></div></div>
+          <span class="cat-bar-count" id="m-p">—</span></div>
+        <div class="cat-bar-row"><span class="cat-bar-label" style="width:90px">Recall</span>
+          <div class="cat-bar-track"><div class="cat-bar-fill ppe" id="m-bar-r" style="width:0%"></div></div>
+          <span class="cat-bar-count" id="m-r">—</span></div>
+        <div class="text-muted text-xs" id="m-time" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Report identity -->
+  <div class="settings-group">
+    <div class="settings-group-title">ข้อมูลองค์กร (สำหรับรายงาน PDF)</div>
+    <div class="card">
+      <label class="input-label">ชื่อบริษัท</label>
+      <input class="input mb-2" id="rep-company" type="text" placeholder="เช่น บริษัท เซฟตี้ จำกัด">
+      <label class="input-label">สถานที่ / ไลน์การผลิต</label>
+      <input class="input mb-2" id="rep-site" type="text" placeholder="เช่น โรงงาน A · ไลน์ 1">
+      <label class="input-label">ผู้จัดทำ / จป.</label>
+      <input class="input" id="rep-preparer" type="text" placeholder="ชื่อผู้จัดทำรายงาน">
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="saveSettings()">บันทึกข้อมูลองค์กร</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy / PDPA -->
+  <div class="settings-group">
+    <div class="settings-group-title">ความเป็นส่วนตัว (PDPA)</div>
+    <div class="card">
+      <p class="text-sub text-sm" style="line-height:1.7;margin-bottom:10px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>ข้อมูลทั้งหมด (เหตุการณ์ + ภาพหลักฐาน + dataset) จัดเก็บ<b>ภายในเครื่องนี้เท่านั้น</b>
+        (SQLite + โฟลเดอร์ <code>data/</code>) สอดคล้องหลัก PDPA<br>
+        <span class="text-xs text-muted">ข้อยกเว้นเดียว: การ "แนบภาพไปกับ LINE" (ตั้งค่าหน้าการแจ้งเตือน LINE)
+        ซึ่ง<b>ปิดไว้เป็นค่าเริ่มต้น</b> — เปิดเมื่อยินยอมเท่านั้น</span>
+      </p>
+      <div class="input-row" style="align-items:center;gap:8px;margin-bottom:12px">
+        <span class="text-sub text-sm">เก็บข้อมูลย้อนหลังไม่เกิน</span>
+        <input class="cooldown-input" id="retention-days" type="number" min="0" max="3650"
+               value="90" style="width:70px" onchange="setRetention(this.value)">
+        <span class="text-sub text-sm">วัน · ข้อมูลเก่ากว่านี้จะถูกลบอัตโนมัติเมื่อเปิดโปรแกรม (0 = เก็บถาวร)</span>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="clearHistory()">ลบประวัติเหตุการณ์ + ภาพหลักฐานทั้งหมด</button>
+    </div>
+  </div>
+
+  <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
+</template>
+
+<template id="tpl-about">
+  <div class="settings-section-title">การจัดการระบบ</div>
+  <div class="settings-section-sub">ข้อมูลระบบและผู้พัฒนา</div>
+
+  <!-- System identity card -->
+  <div class="settings-group">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 20px;gap:6px">
+      <img src="/ui/assets/logo.png" alt="ZENTRA"
+           style="width:128px;height:128px;object-fit:contain;margin-bottom:8px"
+           onerror="this.outerHTML='&lt;span class=&quot;brand-mark&quot; style=&quot;width:110px;height:110px;font-size:54px;border-radius:26px;margin-bottom:8px&quot;&gt;Z&lt;/span&gt;'">
+      <div style="font-size:26px;font-weight:800;letter-spacing:3px;color:var(--accent)">ZENTRA</div>
+      <div class="text-sub" style="font-size:13.5px;max-width:420px;line-height:1.6">เซนตรามากกว่าความปลอดภัย คือความมั่นใจของทุกคนในครอบครัว</div>
+      <div class="text-muted text-xs" style="margin-top:2px">ระบบ AI เฝ้าระวังความปลอดภัยในโรงงาน</div>
+      <!-- showSection('about') fetches /api/status and writes it here. The element
+           was missing, so that fetch ran on every visit and its result was thrown
+           away — the section showed no system state at all. -->
+      <div class="text-xs" style="margin-top:10px;padding:6px 14px;border-radius:99px;
+                                  background:var(--bg-card-alt);border:1px solid var(--border);
+                                  color:var(--text-sub)" id="inf-status">กำลังตรวจสอบ...</div>
+    </div>
+  </div>
+
+  <!-- Developer credits — three columns on one row -->
+  <div class="settings-group">
+    <div class="settings-group-title">ผู้พัฒนา</div>
+    <div class="card">
+      <div style="display:flex;align-items:stretch">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:4px 6px">
+          <span style="width:46px;height:46px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">กท</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">กฤตภาส เทพธรณี</span>
+        </div>
+        <div style="width:1px;background:var(--border);flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:4px 6px">
+          <span style="width:46px;height:46px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">พธ</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">พลวัฒน์ ธนทัตธาดา</span>
+        </div>
+        <div style="width:1px;background:var(--border);flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:4px 6px">
+          <span style="width:46px;height:46px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">ณก</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">ณัฐนนท์ กุมพันณ์</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+var _settings = {};
+var _curSection = 'line';
+
+// Reset = reload saved settings from server, then re-render the current section
+// (so edited fields actually revert to the saved values).
+function resetSettings() {
+  loadSettings().then(function() {
+    showSection(_curSection, document.querySelector('.settings-menu-item[data-section="' + _curSection + '"]'));
+  });
+}
+
+// Reflect the REAL system state in the sidebar status pill instead of a hardcoded
+// green "ระบบทำงานปกติ". ZENTRA.state is kept live by the WebSocket + status poll.
+function updateSettingsStatus() {
+  var dot = document.getElementById('set-status-dot');
+  var txt = document.getElementById('set-status-txt');
+  if (!dot || !txt) return;
+  var cam = ZENTRA.state.camera;
+  if (cam === 'connected') {
+    dot.className = 'status-dot ok';  txt.textContent = 'ระบบทำงานปกติ';       txt.style.color = 'var(--green)';
+  } else if (cam === 'reconnecting') {
+    dot.className = 'status-dot off'; txt.textContent = 'กล้องกำลังเชื่อมต่อ'; txt.style.color = 'var(--yellow)';
+  } else {
+    dot.className = 'status-dot off'; txt.textContent = 'ระบบยังไม่เริ่ม';       txt.style.color = 'var(--text-muted)';
+  }
+}
+
+function init_settings() {
+  updateSettingsStatus();
+  loadSettings().then(() => showSection('line', document.querySelector('.settings-menu-item[data-section="line"]')));
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    _settings = await res.json();
+  } catch (_) { _settings = {}; }
+}
+
+function showSection(name, el) {
+  _curSection = name;
+  document.querySelectorAll('.settings-menu-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const tpl = document.getElementById(`tpl-${name}`);
+  const content = document.getElementById('settings-content');
+  if (!tpl) { content.innerHTML = '<p class="text-muted" style="padding:20px">กำลังพัฒนา...</p>'; return; }
+
+  content.innerHTML = '';
+  content.appendChild(tpl.content.cloneNode(true));
+
+  // Populate values
+  if (name === 'line' || name === 'ai') {
+    const ai = _settings.ai || {};
+    const sl_ppe = document.getElementById('sl-ppe');
+    if (sl_ppe) { sl_ppe.value = ai.ppe_confidence ?? 0.30; document.getElementById('val-ppe').textContent = parseFloat(sl_ppe.value).toFixed(2); }
+    const sl_ab = document.getElementById('sl-abstain');
+    if (sl_ab) { sl_ab.value = ai.abstain_weight ?? 0.35; document.getElementById('val-abstain').textContent = parseFloat(sl_ab.value).toFixed(2); }
+    const sl_frames = document.getElementById('sl-frames');
+    if (sl_frames) { sl_frames.value = ai.fall_confirm_frames ?? 6; document.getElementById('val-frames').textContent = sl_frames.value; }
+    const sl_ratio = document.getElementById('sl-ratio');
+    if (sl_ratio) { sl_ratio.value = ai.fall_bbox_ratio ?? 0.72; document.getElementById('val-ratio').textContent = parseFloat(sl_ratio.value).toFixed(2); }
+    const sel_fm = document.getElementById('sel-fall-mode');
+    if (sel_fm) sel_fm.value = ai.fall_mode || 'hybrid';
+  }
+  if (name === 'line') {
+    const line = _settings.line || {};
+    const tok = document.getElementById('line-token');
+    // The server never returns the token (bearer credential). Show only whether one
+    // is stored; leaving the field blank on save keeps the existing token.
+    if (tok) {
+      tok.value = '';
+      tok.placeholder = line.token_set
+        ? 'บันทึกไว้แล้ว — เว้นว่างไว้เพื่อใช้ค่าเดิม'
+        : 'Channel Access Token...';
+    }
+    var tokStatus = document.getElementById('line-token-status');
+    if (tokStatus) {
+      if (line.token_set) {
+        tokStatus.innerHTML = '<span style="color:var(--green)">✓ มี Token บันทึกไว้แล้ว</span>'
+          + ' <span class="text-muted">— ระบบไม่แสดงค่าเดิมด้วยเหตุผลด้านความปลอดภัย พิมพ์ค่าใหม่เฉพาะเมื่อต้องการเปลี่ยน</span>';
+      } else {
+        tokStatus.innerHTML = '<span class="text-muted">ยังไม่ได้ตั้งค่า Token</span>';
+      }
+    }
+    const alerts = _settings.alerts || {};
+    const tu = document.getElementById('tog-upload-img'); if (tu) tu.checked = alerts.upload_images === true;
+
+    // Group list. Every enabled group receives every alert (no per-level routing).
+    // Migrate legacy per-level ids (group_supervisor/safety/emergency) → one row each.
+    var groups = Array.isArray(line.groups) ? line.groups.slice() : [];
+    var hasRealGroup = groups.some(function (g) { return g && String(g.id || '').trim(); });
+    if (!hasRealGroup) {
+      var legacy = [line.group_supervisor, line.group_safety, line.group_emergency];
+      var labels = ['หัวหน้างาน', 'เจ้าหน้าที่ความปลอดภัย', 'เหตุฉุกเฉิน'];
+      var seen = {}, migrated = [];
+      legacy.forEach(function (id, i) {
+        id = String(id || '').trim();
+        if (id && !seen[id]) { seen[id] = 1; migrated.push({ name: labels[i], id: id, cooldown: 30, enabled: true }); }
+      });
+      if (migrated.length) groups = migrated;
+    }
+    renderLineGroups(groups);
+  }
+  if (name === 'camera') {
+    const cam = _settings.camera || {};
+    renderCurrentSources();
+    const idx = document.getElementById('cam-idx');    if (idx) idx.value = cam.webcam_index ?? 0;
+    const flip= document.getElementById('flip-h');     if (flip) flip.checked = cam.flip_horizontal ?? true;
+  }
+  if (name === 'about') {
+    fetch('/api/status').then(r => r.json()).then(d => {
+      const el = document.getElementById('inf-status');
+      if (el) el.textContent = (d.running ? 'กำลังทำงาน' : 'พร้อม (standby)') + ' · ' + (d.device || 'cpu');
+    }).catch(() => {});
+  }
+  if (name === 'data') {
+    loadDataStats();
+    loadMetrics();
+    loadModelDevice();
+    // These two MUST be populated here, in the section that owns them: the
+    // template is re-cloned on every visit, so an unpopulated toggle renders
+    // unchecked — and saveSettings() reads the DOM, so the next save would
+    // persist auto_collect=false and silently switch collection off.
+    const dataCfg = _settings.data || {};
+    const tc = document.getElementById('tog-collect');      if (tc) tc.checked = dataCfg.auto_collect !== false;
+    const ci = document.getElementById('collect-interval'); if (ci) ci.value   = dataCfg.normal_interval_sec ?? 10;
+    const rep = _settings.report || {};
+    var rc = document.getElementById('rep-company');  if (rc) rc.value = rep.company  || '';
+    var rs = document.getElementById('rep-site');     if (rs) rs.value = rep.site     || '';
+    var rp = document.getElementById('rep-preparer'); if (rp) rp.value = rep.preparer || '';
+    const rd = document.getElementById('retention-days');
+    if (rd) rd.value = (_settings.data && _settings.data.retention_days != null)
+      ? _settings.data.retention_days : 90;
+    const srcSel = document.getElementById('train-source');
+    if (srcSel) {
+      srcSel.onchange = () => {
+        document.getElementById('train-project-row').style.display =
+          (srcSel.value === 'roboflow') ? 'flex' : 'none';
+      };
+    }
+    refreshJobStatus();          // resume display if a job is already running
+  } else {
+    stopJobPoll();               // leaving the data section → stop polling
+  }
+}
+
+async function saveSettings() {
+  // Collect current values
+  const s = JSON.parse(JSON.stringify(_settings));
+
+  const sl_ppe    = document.getElementById('sl-ppe');
+  const sl_frames = document.getElementById('sl-frames');
+  const sl_ratio  = document.getElementById('sl-ratio');
+  if (sl_ppe)    { s.ai = s.ai || {}; s.ai.ppe_confidence    = parseFloat(sl_ppe.value); }
+  const sl_ab = document.getElementById('sl-abstain');
+  if (sl_ab)     { s.ai = s.ai || {}; s.ai.abstain_weight     = parseFloat(sl_ab.value); }
+  if (sl_frames) { s.ai = s.ai || {}; s.ai.fall_confirm_frames= parseInt(sl_frames.value); }
+  if (sl_ratio)  { s.ai = s.ai || {}; s.ai.fall_bbox_ratio   = parseFloat(sl_ratio.value); }
+  const sel_fm = document.getElementById('sel-fall-mode');
+  if (sel_fm)    { s.ai = s.ai || {}; s.ai.fall_mode = sel_fm.value; }
+
+  const tok = document.getElementById('line-token');
+  if (tok) { s.line = s.line || {}; s.line.channel_access_token = tok.value; }
+  // Group list (all-groups routing). Only write when the LINE section is mounted.
+  if (document.getElementById('line-groups-body')) {
+    s.line = s.line || {};
+    s.line.groups = collectLineGroups();
+    // Drop the legacy per-level keys so they can't shadow the new list.
+    delete s.line.group_supervisor;
+    delete s.line.group_safety;
+    delete s.line.group_emergency;
+  }
+
+  const tu  = document.getElementById('tog-upload-img'); if (tu) { s.alerts = s.alerts || {}; s.alerts.upload_images = tu.checked; }
+
+  const idx  = document.getElementById('cam-idx'); if (idx)  { s.camera = s.camera || {}; s.camera.webcam_index = parseInt(idx.value); }
+  const flip = document.getElementById('flip-h');  if (flip) { s.camera = s.camera || {}; s.camera.flip_horizontal = flip.checked; }
+
+  // NOTE: settings.cloud is deliberately NOT touched here. The Cloud Offload
+  // screen was removed, but the feature and its stored values stay — a save
+  // from any other section must leave them exactly as they are.
+
+  const tc = document.getElementById('tog-collect');
+  if (tc) { s.data = s.data || {}; s.data.auto_collect = tc.checked; }
+  const ci = document.getElementById('collect-interval');
+  if (ci && ci.value) { s.data = s.data || {}; s.data.normal_interval_sec = Math.max(2, parseInt(ci.value)); }
+
+  var rc = document.getElementById('rep-company');  if (rc) { s.report = s.report || {}; s.report.company  = rc.value.trim(); }
+  var rs = document.getElementById('rep-site');     if (rs) { s.report = s.report || {}; s.report.site     = rs.value.trim(); }
+  var rp = document.getElementById('rep-preparer'); if (rp) { s.report = s.report || {}; s.report.preparer = rp.value.trim(); }
+
+  try {
+    await fetch('/api/settings', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(s),
+    });
+    // Reflect a freshly-typed token in the saved-state line without a reload. The
+    // server keeps the old token when this field is blank, so "had one before OR
+    // just typed one" = a token is now stored.
+    if (s.line) s.line.token_set = _settings.line ? (_settings.line.token_set || !!(tok && tok.value)) : !!(tok && tok.value);
+    _settings = s;
+    var _ts = document.getElementById('line-token-status');
+    if (_ts && s.line && s.line.token_set) {
+      _ts.innerHTML = '<span style="color:var(--green)">✓ มี Token บันทึกไว้แล้ว</span>'
+        + ' <span class="text-muted">— ระบบไม่แสดงค่าเดิมด้วยเหตุผลด้านความปลอดภัย พิมพ์ค่าใหม่เฉพาะเมื่อต้องการเปลี่ยน</span>';
+    }
+    if (tok) tok.value = '';
+    ZENTRA.toast('บันทึกการตั้งค่าแล้ว', 'success');
+  } catch (_) { ZENTRA.toast('บันทึกไม่สำเร็จ', 'error'); }
+}
+
+/* ─── LINE group list (all-groups routing) ─────────────────── */
+function lineGroupRowHtml(g) {
+  g = g || {};
+  var name = ZENTRA.esc(g.name || '');
+  var id   = ZENTRA.esc(g.id || '');
+  var cd   = (g.cooldown != null ? g.cooldown : 30);
+  var en   = (g.enabled !== false);
+  return '<tr data-grp-row>'
+    + '<td><input class="input grp-name" type="text" placeholder="เช่น หัวหน้างาน" value="' + name + '" style="font-size:12px;padding:5px 8px"></td>'
+    + '<td><input class="input grp-id" type="text" placeholder="Group ID" value="' + id + '" style="font-size:12px;padding:5px 8px"></td>'
+    + '<td><input class="cooldown-input grp-cd" type="number" min="0" value="' + cd + '"> s</td>'
+    + '<td><label class="toggle"><input type="checkbox" class="grp-en"' + (en ? ' checked' : '') + '>'
+    + '<div class="toggle-track"></div><div class="toggle-thumb"></div></label></td>'
+    + '<td style="text-align:center"><button type="button" onclick="removeLineGroup(this)" title="ลบกลุ่ม" '
+    + 'style="width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--red);cursor:pointer;font-size:14px;line-height:1">✕</button></td>'
+    + '</tr>';
+}
+
+function renderLineGroups(groups) {
+  var body = document.getElementById('line-groups-body');
+  if (!body) return;
+  if (!groups || !groups.length) groups = [{ name: '', id: '', cooldown: 30, enabled: true }];
+  body.innerHTML = groups.map(lineGroupRowHtml).join('');
+}
+
+function addLineGroup() {
+  var body = document.getElementById('line-groups-body');
+  if (!body) return;
+  body.insertAdjacentHTML('beforeend', lineGroupRowHtml({ name: '', id: '', cooldown: 30, enabled: true }));
+}
+
+function removeLineGroup(btn) {
+  var body = document.getElementById('line-groups-body');
+  var row  = btn && btn.closest('tr');
+  if (!row || !body) return;
+  if (body.querySelectorAll('[data-grp-row]').length <= 1) {
+    ZENTRA.toast('ต้องมีอย่างน้อย 1 กลุ่ม', 'error');
+    return;
+  }
+  row.remove();
+}
+
+function collectLineGroups() {
+  var out = [];
+  document.querySelectorAll('#line-groups-body [data-grp-row]').forEach(function (r) {
+    var idEl = r.querySelector('.grp-id'), nmEl = r.querySelector('.grp-name');
+    var cdEl = r.querySelector('.grp-cd'), enEl = r.querySelector('.grp-en');
+    var id   = (idEl ? idEl.value : '').trim();
+    var name = (nmEl ? nmEl.value : '').trim();
+    var cd   = parseInt(cdEl ? cdEl.value : '30', 10);
+    if (!id && !name) return;                 // skip fully-empty rows
+    out.push({ name: name, id: id, cooldown: isNaN(cd) ? 30 : cd, enabled: enEl ? !!enEl.checked : true });
+  });
+  return out;
+}
+
+function toggleToken() {
+  const t = document.getElementById('line-token');
+  if (t) t.type = (t.type === 'password') ? 'text' : 'password';
+}
+
+/* ─── "แหล่งภาพปัจจุบัน" — read from what is really configured/running ───
+   The camera registry (settings.cameras) is the authority on WHAT each camera
+   is, and /api/cameras/status on which of them are actually streaming now. The
+   legacy settings.camera.source field is neither: it describes a single-camera
+   app that no longer exists, and on this site it still said "webcam" while
+   three RTSP streams were running. */
+
+// An RTSP URL carries the camera password in clear text. This panel is a
+// summary, not the place to hand out a credential to anyone glancing at the
+// screen — show the host, hide the secret. (The Cameras page is where the URL
+// is actually edited.)
+function maskRtsp(url) {
+  if (!url) return '';
+  return String(url).replace(/^(\w+:\/\/)([^:/@]+):([^@]*)@/, '$1$2:•••@');
+}
+
+function sourceLabel(cam) {
+  const src = cam.source || 'webcam';
+  if (src === 'rtsp') {
+    const u = maskRtsp(cam.rtsp_url);
+    return { kind: 'RTSP (กล้อง IP)', detail: u || 'ยังไม่ได้ตั้ง URL', ok: !!cam.rtsp_url };
+  }
+  if (src === 'file') {
+    const p = cam.video_file_path || '';
+    return { kind: 'ไฟล์วิดีโอ',
+             detail: p ? p.split(/[\\/]/).pop() : 'ยังไม่ได้เลือกไฟล์', ok: !!p };
+  }
+  return { kind: 'Webcam (USB)', detail: 'อุปกรณ์หมายเลข ' + (cam.webcam_index ?? 0), ok: true };
+}
+
+async function renderCurrentSources() {
+  const box = document.getElementById('cur-source-list');
+  if (!box) return;
+  const cams = (_settings && _settings.cameras) || {};
+  const ids = Object.keys(cams).sort();
+  if (!ids.length) {
+    box.innerHTML = '<div class="text-muted text-xs" style="font-style:italic">'
+      + 'ยังไม่ได้เพิ่มกล้อง — กด "เปลี่ยนแหล่งภาพ" เพื่อเชื่อมต่อ</div>';
+    return;
+  }
+  // Which are live right now. Never let this call decide whether the list
+  // renders — a failed poll should grey the dots, not blank the section.
+  let active = [];
+  try {
+    active = (await (await fetch('/api/cameras/status')).json()).active || [];
+  } catch (e) { active = []; }
+
+  box.innerHTML = ids.map(id => {
+    const c = cams[id] || {};
+    const s = sourceLabel(c);
+    const on = active.indexOf(id) !== -1;
+    const dot = on ? 'var(--green)' : 'var(--text-muted)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 11px;margin-bottom:6px;'
+      + 'border-radius:9px;background:var(--bg-card-alt);border:1px solid var(--border)">'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';flex-shrink:0"></span>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="font-size:13px;font-weight:600;color:var(--text)">'
+      +     ZENTRA.esc(c.name || id)
+      +     '<span class="text-accent" style="font-weight:700;margin-left:8px">' + s.kind + '</span>'
+      +   '</div>'
+      +   '<div class="text-xs' + (s.ok ? ' text-muted' : '') + '" style="margin-top:2px;'
+      +     (s.ok ? '' : 'color:var(--orange);')
+      +     'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+      +     ZENTRA.esc(s.detail) + '</div>'
+      + '</div>'
+      + '<span class="text-xs" style="flex-shrink:0;color:' + dot + '">'
+      +   (on ? 'กำลังใช้งาน' : 'ไม่ได้เชื่อมต่อ') + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+async function changeSource() {
+  await fetch('/api/pipeline/stop', { method: 'POST' });
+  ZENTRA.state.pipeline.running = false;
+  ZENTRA.navigate('source');
+}
+
+/* ─── Data & Training ──────────────────────────── */
+var _jobTimer = null;
+
+async function loadDataStats() {
+  try {
+    const d = await (await fetch('/api/data/stats')).json();
+    const c = d.categories || {};
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('ds-ppe',    (c.ppe_violations  ?? 0) + ' รูป');
+    set('ds-zone',   (c.zone_intrusions ?? 0) + ' รูป');
+    set('ds-fall',   (c.fall_events     ?? 0) + ' รูป');
+    set('ds-normal', (c.normal          ?? 0) + ' รูป');
+    set('ds-total',  (d.total_images ?? 0) + ' รูป (' + (d.labeled ?? 0) + ' มี label)');
+    set('ds-size',   (d.size_mb ?? 0) + ' MB');
+  } catch (_) {}
+}
+
+async function loadMetrics() {
+  let d;
+  try { d = await (await fetch('/api/training/metrics')).json(); } catch (_) { return; }
+  const empty = document.getElementById('metrics-empty');
+  const body  = document.getElementById('metrics-body');
+  if (!empty || !body) return;
+  // Prefer PPE metrics, else fall
+  const m = d.ppe || d.fall;
+  if (!m) { empty.style.display = 'block'; body.style.display = 'none'; return; }
+  empty.style.display = 'none';
+  body.style.display = 'block';
+  document.getElementById('m-task').textContent = (m.task || '').toUpperCase();
+  const pct = v => Math.round((v || 0) * 100);
+  const setBar = (id, barId, v) => {
+    document.getElementById(id).textContent = (v != null ? (v).toFixed(3) : '—');
+    document.getElementById(barId).style.width = pct(v) + '%';
+  };
+  setBar('m-map50', 'm-bar-map50', m.mAP50);
+  setBar('m-map',   'm-bar-map',   m['mAP50-95']);
+  setBar('m-p',     'm-bar-p',     m.precision);
+  setBar('m-r',     'm-bar-r',     m.recall);
+  document.getElementById('m-time').textContent = 'อัปเดต: ' + (m.timestamp || '');
+}
+
+// Show the active inference device (cpu/cuda) for the read-only model card.
+function loadModelDevice() {
+  fetch('/api/status').then(function (r) { return r.json(); }).then(function (d) {
+    var e = document.getElementById('ppe-model-device');
+    if (e) e.textContent = d.device || 'cpu';
+  }).catch(function () {});
+}
+
+async function setRetention(v) {
+  const n = Math.max(0, parseInt(v, 10) || 0);
+  _settings.data = _settings.data || {};
+  _settings.data.retention_days = n;
+  try {
+    await fetch('/api/settings', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(_settings),
+    });
+  } catch (_) {}
+}
+
+async function clearData() {
+  if (!(await ZENTRA.confirm('ลบข้อมูลที่เก็บสะสมทั้งหมด? (ลบไฟล์ภาพ + label ออกถาวร)', { danger: true, okText: 'ลบ' }))) return;
+  await fetch('/api/data/clear', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+  loadDataStats();
+  ZENTRA.toast('ลบข้อมูลสะสมแล้ว', 'success');
+}
+
+async function clearHistory() {
+  if (!(await ZENTRA.confirm('ลบประวัติเหตุการณ์และภาพหลักฐานทั้งหมดออกถาวร?', { danger: true, okText: 'ลบทั้งหมด' }))) return;
+  try {
+    const d = await (await fetch('/api/history/clear', { method: 'POST' })).json();
+    ZENTRA.toast('ลบแล้ว ' + (d.removed || 0) + ' เหตุการณ์', 'success');
+  } catch (_) { ZENTRA.toast('ลบไม่สำเร็จ', 'error'); }
+}
+
+async function uploadToRoboflow() {
+  const task    = document.getElementById('train-task').value;
+  const project = (document.getElementById('train-project') || {}).value || '';
+  const body    = { task };
+  if (project.trim()) body.project = project.trim();
+  const res = await fetch('/api/jobs/upload', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+  });
+  const d = await res.json();
+  if (!d.ok) { ZENTRA.toast(d.message || d.error || 'เริ่มไม่สำเร็จ', 'error'); return; }
+  showJobUI(true); startJobPoll();
+}
+
+async function startTraining() {
+  const task   = document.getElementById('train-task').value;
+  const source = document.getElementById('train-source').value;
+  const body   = { task };
+  if (source === 'roboflow') {
+    const p = (document.getElementById('train-project').value || '').trim();
+    if (!p) { ZENTRA.toast('กรุณาระบุชื่อ Roboflow project', 'warn'); return; }
+    body.project = p;
+  }
+  const res = await fetch('/api/jobs/train', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+  });
+  const d = await res.json();
+  if (!d.ok) { ZENTRA.toast(d.message || d.error || 'เริ่มไม่สำเร็จ', 'error'); return; }
+  showJobUI(true); startJobPoll();
+}
+
+async function stopTraining() {
+  await fetch('/api/jobs/stop', { method: 'POST' });
+  refreshJobStatus();
+}
+
+function showJobUI(running) {
+  const prog = document.getElementById('train-progress');
+  const btn  = document.getElementById('train-btn');
+  const stop = document.getElementById('train-stop');
+  if (prog) prog.style.display = 'block';
+  if (btn)  btn.disabled = running;
+  if (stop) stop.style.display = running ? 'inline-flex' : 'none';
+}
+
+function startJobPoll() {
+  stopJobPoll();
+  _jobTimer = setInterval(refreshJobStatus, 1500);
+}
+function stopJobPoll() {
+  if (_jobTimer) { clearInterval(_jobTimer); _jobTimer = null; }
+}
+
+async function refreshJobStatus() {
+  let d;
+  try { d = await (await fetch('/api/jobs/status')).json(); } catch (_) { return; }
+  if (!document.getElementById('train-state')) return;   // left the section
+
+  const running = (d.state === 'running');
+  showJobUI(running);
+
+  const stateEl = document.getElementById('train-state');
+  const stateTh = { idle:'พร้อม', running:'กำลังทำงาน...', done:'เสร็จสิ้น ✓', error:'ผิดพลาด', stopped:'หยุดแล้ว' };
+  if (stateEl) stateEl.textContent = (d.label ? d.label + ' — ' : '') + (stateTh[d.state] || d.state);
+
+  if (d.total > 0) {
+    document.getElementById('train-epoch-lbl').textContent = `Epoch ${d.epoch}/${d.total}`;
+    document.getElementById('train-bar').style.width = Math.round(d.epoch / d.total * 100) + '%';
+  }
+  if (d.map50 != null) document.getElementById('train-map').textContent = 'mAP50: ' + d.map50.toFixed(4);
+
+  const log = document.getElementById('train-log');
+  if (log && d.lines) { log.textContent = d.lines.join('\n'); log.scrollTop = log.scrollHeight; }
+
+  if (!running) {
+    stopJobPoll();
+    if (d.state === 'done') loadDataStats();
+  }
+}
+</script>

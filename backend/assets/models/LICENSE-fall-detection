@@ -1,0 +1,44 @@
+fall_detection_transformer.tflite
+=================================
+
+Vendored, unmodified, from:
+  https://github.com/punpayut/Fall-Detection
+  (deployment/raspberry_pi/fall_detection_transformer.tflite)
+
+The model is a Transformer trained on MediaPipe-Pose keypoint sequences
+(30 frames x 51 features) and emits a single fall probability.
+
+ZENTRA's backend/utils/fall_detector.py reproduces that project's feature
+contract verbatim — the 17 keypoint names sorted alphabetically, the
+[x, y, confidence] layout at [3i, 3i+1, 3i+2], and the hip-centred /
+torso-scaled per-frame normalisation — so the weights see exactly the input
+they were trained on. Verified element-wise against the upstream
+implementation (max |diff| = 0.0).
+
+Note: the shipped file is the 30-timestep model. The 94.9% F1 figure reported
+in the upstream README belongs to a 60-timestep + augmentation model that is
+not distributed.
+
+---------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) punpayut
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

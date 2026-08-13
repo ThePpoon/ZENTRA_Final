@@ -1,0 +1,479 @@
+<div style="height:100%;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)">
+<div style="padding:14px 20px;height:100%;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow-y:auto;overflow-x:hidden">
+
+  <!-- ── Header ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div>
+      <div style="font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.2px">แดชบอร์ด</div>
+      <div style="font-size:12px;color:var(--text-sub);margin-top:1px;font-weight:400">เฝ้าระวังความปลอดภัยแบบเรียลไทม์ · <span id="dash-clock">--:--:--</span></div>
+    </div>
+  </div>
+
+  <!-- ── KPI Row ── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex-shrink:0">
+
+    <!-- Violations Today -->
+    <div id="kpi-tile-emergency" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:13px 16px;transition:background .2s">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;color:var(--text-sub);font-weight:500">การละเมิดวันนี้</span>
+        <span style="width:28px;height:28px;border-radius:50%;background:var(--red-dim);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        </span>
+      </div>
+      <div class="kpi-val" style="font-size:26px;font-weight:700;color:var(--text);margin-top:5px;line-height:1;font-variant-numeric:tabular-nums" id="kpi-total">0</div>
+      <!-- All THREE alert levels. They are different KINDS of incident, not
+           degrees of one: warning = PPE, alert = zone intrusion, emergency = a
+           fall. Folding alert into warning (as this tile used to) hid every zone
+           intrusion behind the PPE count. -->
+      <div style="margin-top:7px;font-size:11.5px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:4px 8px">
+        <span title="ไม่สวมอุปกรณ์นิรภัย"><span id="kpi-warning" style="font-weight:600;color:var(--yellow)">0</span> เฝ้าระวัง</span>
+        <span style="opacity:.4">·</span>
+        <span title="เข้าพื้นที่หวงห้าม"><span id="kpi-alert" style="font-weight:600;color:var(--orange,#f59e0b)">0</span> พื้นที่</span>
+        <span style="opacity:.4">·</span>
+        <span title="ตรวจพบคนล้ม"><span id="kpi-emergency" style="font-weight:600;color:var(--red)">0</span> ฉุกเฉิน</span>
+      </div>
+    </div>
+
+    <!-- Uptime -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:13px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;color:var(--text-sub);font-weight:500">เวลาทำงาน</span>
+        <span style="width:28px;height:28px;border-radius:50%;background:var(--green-dim);color:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+      </div>
+      <div style="font-size:26px;font-weight:700;color:var(--text);margin-top:5px;line-height:1;font-variant-numeric:tabular-nums" id="kpi-uptime">—</div>
+      <div style="margin-top:7px;font-size:11.5px;font-weight:500;color:var(--green)">ระยะเวลาทำงานต่อเนื่อง</div>
+    </div>
+
+    <!-- Camera Online -->
+    <div id="kpi-tile-warning" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:13px 16px;transition:background .2s">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;color:var(--text-sub);font-weight:500">กล้องออนไลน์</span>
+        <span style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+        </span>
+      </div>
+      <div class="kpi-val" style="font-size:26px;font-weight:700;color:var(--text);margin-top:5px;line-height:1;font-variant-numeric:tabular-nums"><span id="kpi-cam-online">0</span><span style="font-size:16px;color:var(--text-muted);font-weight:500">/<span id="kpi-cam-total">0</span></span></div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:7px;font-size:11.5px;font-weight:500;color:var(--green)">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0" id="cam-dot"></span>
+        <span id="cam-status-text">สัญญาณปกติ</span>
+      </div>
+    </div>
+
+    <!-- AI Modules -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:13px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;color:var(--text-sub);font-weight:500">โมดูล AI</span>
+        <span style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12H3v9h8z"/><path d="M21 3h-8v18h8z"/><path d="M21 3h-8v6h8z"/></svg>
+        </span>
+      </div>
+      <div class="kpi-val" style="font-size:26px;font-weight:700;color:var(--text);margin-top:5px;line-height:1;font-variant-numeric:tabular-nums" id="kpi-modules">0/3</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:7px;font-size:11.5px;font-weight:500;color:var(--text-muted)">
+        <span id="kpi-modules-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text-muted)"></span><span id="kpi-modules-sub">รอเริ่มระบบ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main flex area (fills on tall screens; keeps min sizes + scrolls on short) ── -->
+  <div style="flex:1 0 auto;display:flex;flex-direction:column;gap:12px">
+
+    <!-- Row A: Safety Score · Live Video · Module Status — fixed height (won't stretch tall screens) -->
+    <div style="flex:0 0 360px;height:360px;display:grid;grid-template-columns:240px minmax(0,1fr) 280px;gap:12px">
+
+      <!-- Safety Score Donut -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <span style="font-size:13.5px;font-weight:600;color:var(--text)">คะแนนความปลอดภัย</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        </div>
+        <div style="position:relative;width:142px;height:142px;margin:auto;flex-shrink:0">
+          <svg width="142" height="142" viewBox="0 0 140 140" style="transform:rotate(-90deg)">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--border)" stroke-width="13"/>
+            <circle id="score-ring" cx="70" cy="70" r="54" fill="none" stroke="var(--green)" stroke-width="13" stroke-linecap="round" stroke-dasharray="281.6 339.29" style="transition:stroke-dasharray .6s ease,stroke .4s"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span style="font-size:30px;font-weight:700;color:var(--text);line-height:1;font-variant-numeric:tabular-nums" id="score-label">—</span>
+            <span style="font-size:11.5px;color:var(--text-muted);margin-top:3px">วันนี้</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:auto;flex-shrink:0">
+          <div style="flex:1;text-align:center;background:var(--bg-card-alt);border-radius:10px;padding:9px 0">
+            <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:3px">เมื่อวาน</div>
+            <div style="font-size:16px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums" id="score-yesterday">—</div>
+          </div>
+          <div style="flex:1;text-align:center;background:var(--bg-card-alt);border-radius:10px;padding:9px 0">
+            <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:3px">สัปดาห์นี้</div>
+            <div style="font-size:16px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums" id="score-week">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Video -->
+      <div style="position:relative;background:#000;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;min-height:0">
+        <!-- Multi-camera grid. Replaces the single primary-camera <img>: the
+             dashboard now shows every connected camera at once, and a
+             double-click zooms one to fill THIS panel (not the browser
+             fullscreen) — double-click again to go back. -->
+        <div id="dash-grid" style="position:absolute;inset:0;display:grid;gap:2px;background:#000"></div>
+        <!-- Connecting overlay -->
+        <div class="video-overlay" id="video-overlay" style="border-radius:12px">
+          <div class="video-overlay-spinner"></div>
+          <div class="video-overlay-text">กำลังเชื่อมต่อกล้อง...</div>
+        </div>
+        <!-- Top chrome -->
+        <div style="position:absolute;top:12px;left:14px;display:flex;align-items:center;gap:8px;z-index:2">
+          <span style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.58);backdrop-filter:blur(4px);padding:5px 10px;border-radius:7px;color:#fff;font-size:11.5px;font-weight:600">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--red);animation:recPulse 1.4s infinite"></span>LIVE
+          </span>
+          <span id="camera-label" style="background:rgba(0,0,0,.58);backdrop-filter:blur(4px);padding:5px 10px;border-radius:7px;color:#fff;font-size:11.5px;font-weight:500">กล้อง #1</span>
+          <span id="dash-focus-hint" style="display:none;background:rgba(0,0,0,.58);backdrop-filter:blur(4px);padding:5px 10px;border-radius:7px;color:rgba(255,255,255,.75);font-size:11px">ดับเบิลคลิกเพื่อกลับ</span>
+        </div>
+        <span id="video-clock" style="position:absolute;top:12px;right:14px;background:rgba(0,0,0,.58);backdrop-filter:blur(4px);padding:5px 10px;border-radius:7px;color:rgba(255,255,255,.85);font-size:11px;font-variant-numeric:tabular-nums;z-index:2">--:--:--</span>
+        <!-- Toast container -->
+        <div id="toast-container" style="position:absolute;left:16px;bottom:16px;max-width:340px;z-index:5;display:flex;flex-direction:column-reverse;gap:8px"></div>
+      </div>
+
+      <!-- Module Status + Activity bars -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 18px;display:flex;flex-direction:column;overflow:hidden">
+        <div style="font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:11px;flex-shrink:0">สถานะโมดูล</div>
+        <div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="status-dot off" id="dot-ppe" style="flex-shrink:0"></span>
+            <span style="flex:1;font-size:12.5px;color:var(--text)">ตรวจจับ PPE</span>
+            <span class="module-label off" id="lbl-ppe">สแตนด์บาย</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="status-dot off" id="dot-zone" style="flex-shrink:0"></span>
+            <span style="flex:1;font-size:12.5px;color:var(--text)">พื้นที่ปลอดภัย</span>
+            <span class="module-label off" id="lbl-zone">สแตนด์บาย</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="status-dot off" id="dot-fall" style="flex-shrink:0"></span>
+            <span style="flex:1;font-size:12.5px;color:var(--text)">ฮีทสโตรก / การล้ม</span>
+            <span class="module-label off" id="lbl-fall">สแตนด์บาย</span>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:13px 0;flex-shrink:0"></div>
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:8px;flex-shrink:0">กิจกรรม · 24 ชม.ล่าสุด</div>
+        <div style="flex:1;min-height:48px"><canvas id="dash-hourly" style="width:100%;display:block"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row B: Recent Alerts (full width) — grows to fill remaining space -->
+    <div style="flex:1 1 auto;min-height:220px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:13px 18px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;margin-bottom:4px">
+        <span style="font-size:13.5px;font-weight:600;color:var(--text)">การแจ้งเตือนล่าสุด</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button onclick="ZENTRA.navigate('history')" style="border:none;background:transparent;color:var(--accent);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer">ดูทั้งหมด →</button>
+        </div>
+      </div>
+      <div id="alarm-list" style="flex:1;min-height:0;overflow-y:auto">
+        <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">ยังไม่มีการแจ้งเตือน</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<style>
+  .dash-tile{position:relative;overflow:hidden;background:#000;cursor:pointer;min-width:0;min-height:0}
+  .dash-tile img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
+  .dash-tile.focused{outline:1px solid rgba(56,189,248,.5);outline-offset:-1px}
+  .dash-tile-off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:5px;color:rgba(255,255,255,.25);font-size:11px}
+  .dash-tile-name{position:absolute;left:7px;bottom:6px;max-width:calc(100% - 14px);
+    background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:2px 7px;border-radius:5px;
+    color:rgba(255,255,255,.9);font-size:10.5px;font-weight:600;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+  /* One camera fills the panel: hide the per-tile name, the top chrome already
+     names it, and the label would collide with the toast stack. */
+  #dash-grid.focus .dash-tile-name{display:none}
+  .dash-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:8px;color:rgba(255,255,255,.3);font-size:12.5px}
+</style>
+<script src="/ui/assets/vendor/chart.umd.min.js"></script>
+<script>
+var _dashToasts = [];
+var _dashClockTimer = null;
+var _dashCams  = [];      // [{id,name}] — cameras shown in the live panel
+var _dashFocus = null;    // camera id zoomed to fill the panel, null = grid
+
+// ─── Live multi-camera panel ────────────────────────
+// Column count from camera count: 1 fills the panel, 2-4 go 2-up, 5-9 go 3-up.
+function dashCols(n) { return n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4; }
+
+function dashRenderGrid() {
+  var grid = document.getElementById('dash-grid');
+  if (!grid) return;
+  if (!_dashCams.length) {
+    grid.style.gridTemplateColumns = '1fr';
+    grid.innerHTML = '<div class="dash-empty">'
+      + '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+      + '<span>ยังไม่ได้เพิ่มกล้อง — ไปที่หน้า "กล้อง"</span></div>';
+    return;
+  }
+  grid.innerHTML = _dashCams.map(function (c) {
+    var frame = (ZENTRA._frames || {})[c.id];
+    return '<div class="dash-tile" id="dash-cell-' + c.id + '" ondblclick="dashToggleFocus(\'' + c.id + '\')">'
+      + '<img id="dash-tile-' + c.id + '" src="' + (frame || '') + '" alt=""' + (frame ? '' : ' style="display:none"') + '>'
+      + '<div class="dash-tile-off" id="dash-off-' + c.id + '"' + (frame ? ' style="display:none"' : '') + '>'
+      +   '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+      +   '<span>ไม่มีสัญญาณ</span></div>'
+      + '<span class="dash-tile-name">' + ZENTRA.esc(c.name) + '</span>'
+      + '</div>';
+  }).join('');
+  dashApplyLayout();
+}
+
+// Layout only — never rebuilds the DOM, so the frames already decoded into each
+// <img> survive a focus change (same reason the Cameras grid stopped flickering).
+function dashApplyLayout() {
+  var grid = document.getElementById('dash-grid');
+  if (!grid || !_dashCams.length) return;
+  var focused = _dashFocus && _dashCams.some(function (c) { return c.id === _dashFocus; });
+  if (!focused) _dashFocus = null;
+  grid.classList.toggle('focus', !!_dashFocus);
+  if (_dashFocus) {
+    grid.style.gridTemplateColumns = '1fr';
+    grid.style.gridTemplateRows    = '1fr';
+  } else {
+    var cols = dashCols(_dashCams.length);
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
+    grid.style.gridTemplateRows    = 'repeat(' + Math.ceil(_dashCams.length / cols) + ',1fr)';
+  }
+  _dashCams.forEach(function (c) {
+    var cell = document.getElementById('dash-cell-' + c.id);
+    if (!cell) return;
+    cell.style.display = (!_dashFocus || c.id === _dashFocus) ? '' : 'none';
+    cell.classList.toggle('focused', c.id === _dashFocus);
+  });
+  dashUpdateLabel();
+}
+
+function dashToggleFocus(id) {
+  _dashFocus = (_dashFocus === id) ? null : id;
+  dashApplyLayout();
+}
+
+function dashUpdateLabel() {
+  var lbl  = document.getElementById('camera-label');
+  var hint = document.getElementById('dash-focus-hint');
+  if (hint) hint.style.display = _dashFocus ? '' : 'none';
+  if (!lbl) return;
+  if (_dashFocus) {
+    var c = _dashCams.find(function (x) { return x.id === _dashFocus; });
+    lbl.textContent = c ? c.name : _dashFocus;
+  } else {
+    lbl.textContent = _dashCams.length
+      ? (_dashCams.length + ' กล้อง · ดับเบิลคลิกเพื่อขยาย')
+      : 'ยังไม่มีกล้อง';
+  }
+}
+
+async function dashLoadCams() {
+  try {
+    var s = await (await fetch('/api/settings')).json();
+    var reg = s.cameras || {};
+    _dashCams = Object.keys(reg).map(function (id) {
+      return { id: id, name: (reg[id] || {}).name || id };
+    });
+  } catch (e) { _dashCams = []; }
+  dashRenderGrid();
+}
+
+// Route every incoming frame to its own tile. app.js calls this per camera_id,
+// which is what lets N cameras share the ONE WebSocket without overwriting each
+// other's picture.
+ZENTRA._frameHook = function (cid, dataUrl) {
+  var img = document.getElementById('dash-tile-' + cid);
+  if (!img) return;
+  img.src = dataUrl;
+  if (img.style.display === 'none') {
+    img.style.display = 'block';
+    var off = document.getElementById('dash-off-' + cid);
+    if (off) off.style.display = 'none';
+  }
+};
+
+function dashRenderToasts() {
+  var c = document.getElementById('toast-container');
+  if (!c) return;
+  c.innerHTML = _dashToasts.slice(-3).map(function(t) {
+    return '<div style="display:flex;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;'
+      + 'box-shadow:0 10px 30px rgba(0,0,0,.3);overflow:hidden;animation:toastIn .3s ease">'
+      + '<div style="width:3px;flex-shrink:0;background:' + t.color + '"></div>'
+      + '<div style="padding:10px 12px;display:flex;gap:10px;align-items:flex-start;flex:1">'
+      + '<span style="color:' + t.color + ';flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>'
+      + '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">' + ZENTRA.esc(t.title) + '</div>'
+      + '<div style="font-size:11.5px;color:var(--text-sub);margin-top:2px">' + ZENTRA.esc(t.meta) + '</div></div>'
+      + '<button onclick="dashDismissToast(' + Number(t.id) + ')" style="border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:0;margin-left:4px">×</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function dashDismissToast(id) {
+  _dashToasts = _dashToasts.filter(function(t) { return t.id !== id; });
+  dashRenderToasts();
+}
+
+function dashPushToast(title, meta, color) {
+  var id = Date.now() + Math.floor(Math.random() * 1000);
+  _dashToasts.push({ id: id, title: title, meta: meta, color: color || 'var(--orange)' });
+  if (_dashToasts.length > 3) _dashToasts = _dashToasts.slice(-3);
+  dashRenderToasts();
+  setTimeout(function() { dashDismissToast(id); }, 6500);
+}
+
+function updateSafetyScore(score) {
+  var circum = 339.29;
+  score = Math.min(100, Math.max(0, Math.round(score)));
+  var filled = (score / 100) * circum;
+  var color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--red)';
+  var ring = document.getElementById('score-ring');
+  var lbl  = document.getElementById('score-label');
+  if (ring) { ring.setAttribute('stroke-dasharray', filled + ' ' + circum); ring.setAttribute('stroke', color); }
+  if (lbl)  lbl.textContent = score + '%';
+}
+
+function dashYmd(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function dashScoreFromTotal(total) { return Math.max(0, 100 - (total || 0) * 4); }
+
+// Safety score (today donut) + yesterday / this-week comparisons — all from real
+// stored events. "Score" is an estimate: 100 minus a weight per confirmed event.
+function dashLoadScores() {
+  var yest = new Date(Date.now() - 864e5);
+  fetch('/api/history/today').then(function(r){ return r.json(); }).then(function(d){
+    updateSafetyScore(dashScoreFromTotal(d.total));
+  }).catch(function(){});
+  fetch('/api/history/today?day=' + dashYmd(yest)).then(function(r){ return r.json(); }).then(function(d){
+    var e = document.getElementById('score-yesterday'); if (e) e.textContent = dashScoreFromTotal(d.total) + '%';
+  }).catch(function(){});
+  // "This Week" must be comparable to the daily donut, so it's the AVERAGE of each
+  // day's score over the last 7 days — NOT 100−4×(week's total events), which mixed
+  // a per-day formula with a 7-day event count and collapsed to 0% almost always.
+  var days = [];
+  for (var k = 0; k < 7; k++) days.push(dashYmd(new Date(Date.now() - k * 864e5)));
+  Promise.all(days.map(function(dd){
+    return fetch('/api/history/today?day=' + dd)
+      .then(function(r){ return r.json(); })
+      .then(function(d){ return dashScoreFromTotal(d.total); })
+      .catch(function(){ return null; });
+  })).then(function(scores){
+    var vals = scores.filter(function(x){ return x != null; });
+    var avg = vals.length ? Math.round(vals.reduce(function(a,b){ return a + b; }, 0) / vals.length) : 0;
+    var e = document.getElementById('score-week'); if (e) e.textContent = avg + '%';
+  });
+}
+
+function loadDashHourly() {
+  var canvas = document.getElementById('dash-hourly');
+  if (!canvas) return;
+  // Chart.js failed to load (e.g. offline) — show a clear fallback instead of an
+  // empty box, so the panel never looks broken.
+  if (typeof Chart === 'undefined') {
+    var wrap = canvas.parentElement;
+    if (wrap) wrap.innerHTML = '<div style="height:100%;min-height:48px;display:flex;align-items:center;'
+      + 'justify-content:center;text-align:center;color:var(--text-muted);font-size:11.5px;padding:6px">'
+      + 'ไม่สามารถโหลดกราฟกิจกรรมได้</div>';
+    return;
+  }
+  fetch('/api/history/hourly').then(function(r) { return r.json(); }).then(function(data) {
+    var labels = [];
+    for (var h = 0; h < 24; h++) labels.push(String(h).padStart(2, '0'));
+    var values = labels.map(function(h) { return data[h] || 0; });
+    if (ZENTRA._dashChart) ZENTRA._dashChart.destroy();
+    ZENTRA._dashChart = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 3, maxBarThickness: 10 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#9AA0B8', font: { size: 8 } }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: '#9AA0B8', font: { size: 8 }, precision: 0 }, grid: { color: 'rgba(128,128,128,0.08)' } },
+        },
+      },
+    });
+  }).catch(function() {});
+}
+
+function init_dashboard() {
+  // Clock
+  function tickClock() {
+    var t = new Date().toLocaleTimeString('th-TH', { hour12: false });
+    var el1 = document.getElementById('dash-clock');
+    var el2 = document.getElementById('video-clock');
+    if (el1) el1.textContent = t;
+    if (el2) el2.textContent = t;
+  }
+  tickClock();
+  // Clear any prior clock first — navigate() re-runs this init on every dashboard
+  // visit, so without this each visit would stack another 1 Hz interval.
+  if (_dashClockTimer) clearInterval(_dashClockTimer);
+  _dashClockTimer = setInterval(tickClock, 1000);
+
+  // Live panel: build one tile per configured camera. Frames already cached from
+  // this session are painted immediately by dashRenderGrid(), so returning to the
+  // dashboard never shows a black panel while waiting for the next frame.
+  _dashFocus = null;
+  dashLoadCams();
+
+  // Safety score + comparisons from real stored events
+  dashLoadScores();
+
+  // Module status, KPIs, camera state
+  ZENTRA._updateModuleStatus();
+  ZENTRA._updateKPIs();
+  ZENTRA._updateCameraState();
+  // The on-video emergency banner was removed — live emergencies still surface as
+  // a toast (bottom-left) via _toastHook, and in the Recent Alerts list.
+  ZENTRA.state.last_emergency = null;
+
+  // Camera status indicator
+  function updateCamDot() {
+    var dot  = document.getElementById('cam-dot');
+    var txt  = document.getElementById('cam-status-text');
+    var cam  = ZENTRA.state.camera;
+    if (!dot) return;
+    if (cam === 'connected')    { dot.style.background = 'var(--green)'; if (txt) { txt.textContent = 'สัญญาณปกติ'; txt.style.color = 'var(--green)'; } }
+    else if (cam === 'reconnecting') { dot.style.background = 'var(--yellow)'; if (txt) { txt.textContent = 'กำลังเชื่อมต่อใหม่'; txt.style.color = 'var(--yellow)'; } }
+    else { dot.style.background = 'var(--red)'; if (txt) { txt.textContent = 'ออฟไลน์'; txt.style.color = 'var(--red)'; } }
+  }
+  updateCamDot();
+  ZENTRA._camDotHook = updateCamDot;
+
+  // Seed alarms from history
+  if (!ZENTRA.state.recentAlarms || !ZENTRA.state.recentAlarms.length) {
+    fetch('/api/history/events?limit=10').then(function(r) { return r.json(); }).then(function(d) {
+      ZENTRA.state.recentAlarms = (d.events || []).map(function(e) {
+        return { level: e.level, message: e.message, time: e.time, camera: e.camera };
+      });
+      ZENTRA._renderAlarms();
+    }).catch(function() { ZENTRA._renderAlarms(); });
+  } else {
+    ZENTRA._renderAlarms();
+  }
+
+  // Hook WS alerts → toasts
+  ZENTRA._toastHook = function(msg) {
+    if (!document.getElementById('toast-container')) return;
+    var color = msg.level === 'emergency' ? 'var(--red)'
+              : msg.level === 'alert'     ? 'var(--orange)'
+              : 'var(--accent)';
+    dashPushToast(
+      msg.message || 'เหตุการณ์ความปลอดภัย',
+      (msg.camera || 'กล้อง #1') + ' · ' + (msg.timestamp || new Date().toLocaleTimeString('th-TH', { hour12: false })),
+      color
+    );
+  };
+
+  loadDashHourly();
+  ZENTRA.connectWS();
+  ZENTRA.startStatusPoll();
+}
+</script>

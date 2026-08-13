@@ -1,0 +1,432 @@
+<div style="height:100%;overflow-y:auto;background:var(--bg)">
+<div style="padding:24px 28px 28px;min-height:100%;display:flex;flex-direction:column;box-sizing:border-box">
+
+  <!-- ── Header ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-shrink:0">
+    <div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.3px">ประวัติเหตุการณ์</div>
+      <div style="font-size:13px;color:var(--text-sub);margin-top:2px">เหตุการณ์ทั้งหมดที่บันทึกไว้ในเครื่องนี้</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;color:var(--text-muted)">ช่วงรายงาน:</span>
+      <input type="text" id="hist-from" readonly onclick="histPick('hist-from')" placeholder="จากวันที่" style="width:118px;height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:12.5px;cursor:pointer;outline:none">
+      <span style="color:var(--text-muted)">–</span>
+      <input type="text" id="hist-to" readonly onclick="histPick('hist-to')" placeholder="ถึงวันที่" style="width:118px;height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:12.5px;cursor:pointer;outline:none">
+      <button onclick="histDownloadPdf()" title="รายงาน PDF ตามมาตรฐาน" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        PDF
+      </button>
+      <button onclick="histExport()" title="ข้อมูลดิบ CSV" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        CSV
+      </button>
+      <button onclick="histSendLine()" title="ส่งสรุปเข้ากลุ่ม LINE" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+        LINE
+      </button>
+      <button onclick="histClear()" title="ลบประวัติทั้งหมด (คืนพื้นที่เครื่อง)" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:8px;border:1px solid var(--red);background:transparent;color:var(--red);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        ลบประวัติ
+      </button>
+      <button onclick="histRefresh()" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        รีเฟรช
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Stat Summary ── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;flex-shrink:0">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;letter-spacing:.4px">เหตุการณ์ทั้งหมด</div>
+      <div style="font-size:28px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums" id="hist-stat-total">—</div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;letter-spacing:.4px">การตรวจจับ PPE</div>
+      <div style="font-size:28px;font-weight:800;color:var(--orange);font-variant-numeric:tabular-nums" id="hist-stat-ppe">—</div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;letter-spacing:.4px">การตรวจจับพื้นที่</div>
+      <div style="font-size:28px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums" id="hist-stat-zone">—</div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;letter-spacing:.4px">การตรวจจับการล้ม</div>
+      <div style="font-size:28px;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums" id="hist-stat-fall">—</div>
+    </div>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-shrink:0">
+    <div style="flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:var(--bg-card)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="hist-search" type="text" placeholder="ค้นหาเหตุการณ์…" oninput="histFilter()"
+        style="border:none;background:transparent;color:var(--text);font-family:var(--font);font-size:13.5px;width:100%;outline:none">
+    </div>
+    <select id="hist-day" onchange="histRefresh()" style="border:1px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:13px;cursor:pointer;outline:none">
+      <option value="">ทุกวัน (ล่าสุด)</option>
+    </select>
+    <select id="hist-filter-level" onchange="histFilter()" style="border:1px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:13px;cursor:pointer;outline:none">
+      <option value="all">ทุกระดับ</option>
+      <option value="emergency">ฉุกเฉิน</option>
+      <option value="alert">อันตราย</option>
+      <option value="warning">เตือน</option>
+    </select>
+    <select id="hist-filter-type" onchange="histFilter()" style="border:1px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:13px;cursor:pointer;outline:none">
+      <option value="all">ทุกประเภท</option>
+      <option value="ppe">PPE</option>
+      <option value="zone">พื้นที่</option>
+      <option value="fall">การล้ม</option>
+    </select>
+  </div>
+
+  <!-- ── Event Table ── -->
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;flex:1">
+
+    <!-- Column headers -->
+    <div style="display:grid;grid-template-columns:44px 1fr 80px 90px 90px 120px 70px;gap:10px;padding:11px 20px;background:var(--bg-card-alt);border-bottom:1px solid var(--border)">
+      <span></span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px">เหตุการณ์</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px">กล้อง</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px">ประเภท</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px">ระดับ</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px">เวลา</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;text-align:center">หลักฐาน</span>
+    </div>
+
+    <!-- Rows injected here -->
+    <div id="hist-table-body">
+      <div style="text-align:center;padding:48px 0;color:var(--text-muted)">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px;opacity:.4"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="font-size:14px;color:var(--text-muted)">กำลังโหลดข้อมูล…</div>
+      </div>
+    </div>
+
+    <!-- Pagination bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-top:1px solid var(--border)">
+      <span style="font-size:12.5px;color:var(--text-muted)" id="hist-pager-label">—</span>
+      <div style="display:flex;gap:6px" id="hist-pager-btns"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- Evidence snapshot modal -->
+<div id="hist-snap-modal" role="dialog" aria-modal="true" onclick="histCloseSnap()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center;padding:32px">
+  <div onclick="event.stopPropagation()" style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;max-width:min(880px,92vw);max-height:90vh;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+      <span id="hist-snap-title" style="font-size:13.5px;font-weight:600;color:var(--text)">ภาพหลักฐาน</span>
+      <button onclick="histCloseSnap()" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:17px;line-height:1">×</button>
+    </div>
+    <img id="hist-snap-img" src="" alt="" style="max-width:100%;max-height:calc(90vh - 50px);object-fit:contain;display:block;background:#000">
+  </div>
+</div>
+
+<script>
+var _histEvents = [];
+var _histPage   = 1;
+var _histPer    = 15;
+
+var _histTypeCfg = {
+  ppe:  { label:'PPE',      color:'var(--orange)', bg:'rgba(255,122,69,.12)', initials:'PP' },
+  zone: { label:'พื้นที่',   color:'var(--accent)', bg:'var(--accent-dim)',    initials:'ZN' },
+  fall: { label:'การล้ม',   color:'var(--red)',    bg:'var(--red-dim)',       initials:'FL' },
+  heat: { label:'ฮีทสโตรก', color:'#F59E0B',       bg:'rgba(245,158,11,.12)', initials:'HT' },
+};
+var _histLevelCfg = {
+  emergency: { label:'ฉุกเฉิน', color:'var(--red)',    bg:'var(--red-dim)' },
+  alert:     { label:'อันตราย', color:'var(--accent)', bg:'var(--accent-dim)' },
+  warning:   { label:'เตือน',   color:'var(--orange)', bg:'rgba(255,122,69,.12)' },
+};
+
+// Use the DB-stored type/level (no message guessing)
+function histType(e)  { return e.type  || 'zone'; }
+function histLevel(e) { return e.level || 'warning'; }
+
+// Event messages embed operator-supplied zone names ("บุกรุกพื้นที่อันตราย '<name>'"),
+// so they are untrusted text, not markup. Escape before any innerHTML.
+function histEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+
+// Strip the internal ByteTrack id from event messages for display.
+//
+// The engine no longer writes ids into messages at all (see ppe_engine.py), so
+// this is now purely BACKWARDS COMPATIBILITY: rows written to zentra.db by
+// older versions still carry "คนที่ #123", and History renders straight from
+// the DB. Keep it until those rows have aged out. The raw message stays in the
+// DB / search / CSV.
+function histCleanMsg(s) {
+  return String(s == null ? '' : s)
+    .replace(/\s*\(\s*คนที่\s*:?\s*#?\s*\d+\s*\)/g, '')   // "(คนที่ #123)" suffix
+    .replace(/^\s*คนที่\s*:?\s*#?\s*\d+\s*:\s*/, '')       // "คนที่ #123:" prefix
+    .trim();
+}
+
+function histFilteredEvents() {
+  var q    = ((document.getElementById('hist-search')       || {}).value || '').toLowerCase();
+  var lvl  = (document.getElementById('hist-filter-level')  || {}).value || 'all';
+  var type = (document.getElementById('hist-filter-type')   || {}).value || 'all';
+  return _histEvents.filter(function(e) {
+    if (q && (e.message || '').toLowerCase().indexOf(q) === -1) return false;
+    if (lvl  !== 'all' && histLevel(e) !== lvl)  return false;
+    if (type !== 'all' && histType(e)  !== type) return false;
+    return true;
+  });
+}
+
+function histFilter() { _histPage = 1; histRenderTable(); }
+
+function histRenderTable() {
+  var filtered = histFilteredEvents();
+  var total = filtered.length;
+  var pages = Math.max(1, Math.ceil(total / _histPer));
+  _histPage = Math.min(_histPage, pages);
+  var slice = filtered.slice((_histPage - 1) * _histPer, _histPage * _histPer);
+
+  var lbl = document.getElementById('hist-pager-label');
+  if (lbl) {
+    var from = total === 0 ? 0 : (_histPage - 1) * _histPer + 1;
+    var to   = Math.min(_histPage * _histPer, total);
+    lbl.textContent = 'แสดง ' + from + '–' + to + ' จาก ' + total + ' เหตุการณ์';
+  }
+
+  var btns = document.getElementById('hist-pager-btns');
+  if (btns) {
+    var bhtml = '<button onclick="histGoPage(' + Math.max(1, _histPage - 1) + ')"'
+      + (_histPage <= 1 ? ' disabled' : '')
+      + ' style="width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;opacity:' + (_histPage <= 1 ? '.4' : '1') + '">‹</button>';
+    var s = Math.max(1, Math.min(_histPage - 2, pages - 4));
+    var end2 = Math.min(pages, s + 4);
+    for (var p2 = s; p2 <= end2; p2++) {
+      bhtml += '<button onclick="histGoPage(' + p2 + ')" style="width:30px;height:30px;border-radius:7px;'
+        + (p2 === _histPage ? 'border:none;background:var(--accent);color:#fff;font-weight:700;' : 'border:1px solid var(--border);background:transparent;color:var(--text-muted);')
+        + 'cursor:pointer">' + p2 + '</button>';
+    }
+    bhtml += '<button onclick="histGoPage(' + Math.min(pages, _histPage + 1) + ')"'
+      + (_histPage >= pages ? ' disabled' : '')
+      + ' style="width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;opacity:' + (_histPage >= pages ? '.4' : '1') + '">›</button>';
+    btns.innerHTML = bhtml;
+  }
+
+  var body = document.getElementById('hist-table-body');
+  if (!body) return;
+  if (slice.length === 0) {
+    // Distinguish "nothing recorded yet" (fresh install / cleared) from
+    // "filters excluded everything" — they need different guidance.
+    if (_histEvents.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:52px 24px;color:var(--text-muted)">'
+        + '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;opacity:.35"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>'
+        + '<div style="font-size:14.5px;font-weight:600;color:var(--text-sub);margin-bottom:4px">ยังไม่มีเหตุการณ์บันทึกไว้</div>'
+        + '<div style="font-size:12.5px;color:var(--text-muted)">เหตุการณ์จะปรากฏที่นี่โดยอัตโนมัติเมื่อระบบตรวจพบ</div>'
+        + '</div>';
+    } else {
+      body.innerHTML = '<div style="text-align:center;padding:52px 24px;color:var(--text-muted)">'
+        + '<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;opacity:.35"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>'
+        + '<div style="font-size:14px;font-weight:600;color:var(--text-sub);margin-bottom:4px">ไม่พบเหตุการณ์ที่ตรงกับเงื่อนไข</div>'
+        + '<div style="font-size:12.5px;color:var(--text-muted)">ลองล้างคำค้นหา ตัวกรอง หรือเลือกช่วงวันอื่น</div>'
+        + '</div>';
+    }
+    return;
+  }
+  body.innerHTML = slice.map(function(e) {
+    var tk  = histType(e);
+    var tc  = _histTypeCfg[tk] || { label: tk, color: 'var(--accent)', bg: 'var(--accent-dim)', initials: '??' };
+    var lk  = histLevel(e);
+    var lc  = _histLevelCfg[lk] || _histLevelCfg.warning;
+    var tm  = e.time || e.timestamp || '—';
+    var evi = e.has_snapshot
+      ? '<button onclick="histOpenSnap(' + Number(e.id) + ',\'' + histEsc(String(e.time || '').replace(/[^0-9:]/g, '')) + '\')" title="ดูภาพหลักฐาน" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>'
+      : '<span style="color:var(--text-muted)">—</span>';
+    return '<div style="display:grid;grid-template-columns:44px 1fr 80px 90px 90px 120px 70px;gap:10px;padding:13px 20px;align-items:center;border-bottom:1px solid var(--border)">'
+      + '<div style="width:34px;height:34px;border-radius:50%;background:' + tc.bg + ';color:' + tc.color + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">' + tc.initials + '</div>'
+      + '<div><div style="font-size:13.5px;font-weight:600;color:var(--text)">' + histEsc(histCleanMsg(e.message) || 'เหตุการณ์') + '</div>'
+      + '<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px">' + histEsc(e.date || '') + '</div></div>'
+      + '<span style="font-size:12.5px;color:var(--text-sub)">' + histEsc(e.camera || 'กล้อง #1') + '</span>'
+      + '<span style="display:inline-flex;padding:3px 9px;border-radius:99px;background:' + tc.bg + ';color:' + tc.color + ';font-size:11px;font-weight:700">' + tc.label + '</span>'
+      + '<span style="display:inline-flex;padding:3px 9px;border-radius:99px;background:' + lc.bg + ';color:' + lc.color + ';font-size:11px;font-weight:700">' + lc.label + '</span>'
+      + '<span style="font-size:12.5px;color:var(--text-sub);font-variant-numeric:tabular-nums">' + histEsc(tm) + '</span>'
+      + '<span style="text-align:center">' + evi + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function histOpenSnap(id, tm) {
+  var m = document.getElementById('hist-snap-modal');
+  var img = document.getElementById('hist-snap-img');
+  var ttl = document.getElementById('hist-snap-title');
+  if (img) ZENTRA.setImgSrc(img, '/api/history/snapshot/' + id);
+  if (ttl) ttl.textContent = 'ภาพหลักฐาน · ' + (tm || '');
+  if (m) m.style.display = 'flex';
+}
+function histCloseSnap() {
+  var m = document.getElementById('hist-snap-modal');
+  if (m) m.style.display = 'none';
+  var img = document.getElementById('hist-snap-img');
+  if (img) img.src = '';
+}
+
+function histGoPage(p) { _histPage = p; histRenderTable(); }
+
+function histCurrentDay() {
+  return (document.getElementById('hist-day') || {}).value || '';
+}
+
+function histRefresh() {
+  _histPage = 1;
+  var body = document.getElementById('hist-table-body');
+  if (body) body.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--text-muted)">กำลังโหลด…</div>';
+  var day = histCurrentDay();
+  // A single day is bounded; "all days" loads the latest 2000.
+  var url = day ? ('/api/history/events?day=' + day + '&limit=10000')
+                : '/api/history/events?limit=2000';
+  fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+    _histEvents = (d.events || []);   // server returns newest-first already
+    histUpdateStats();
+    histRenderTable();
+  }).catch(function() {
+    if (body) body.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--red)">ไม่สามารถโหลดข้อมูลได้</div>';
+  });
+}
+
+function histUpdateStats() {
+  var total = _histEvents.length;
+  var emg   = _histEvents.filter(function(e) { return histLevel(e) === 'emergency'; }).length;
+  var warn  = _histEvents.filter(function(e) { return histLevel(e) === 'warning'; }).length;
+  var zone  = _histEvents.filter(function(e) { return histType(e)  === 'zone'; }).length;
+  var ppe   = _histEvents.filter(function(e) { return histType(e)  === 'ppe'; }).length;
+  var fall  = _histEvents.filter(function(e) { return histType(e)  === 'fall'; }).length;
+  function setEl(id, v) { var x = document.getElementById(id); if (x) x.textContent = v; }
+  setEl('hist-stat-total', total);
+  setEl('hist-stat-ppe',   ppe);
+  setEl('hist-stat-zone',  zone);
+  setEl('hist-stat-fall',  fall);
+  ZENTRA.state.alerts = { total: total, emergency: emg, warning: warn };
+  ZENTRA._updateKPIs();
+}
+
+// Build a query for the report/export: from–to range if both set, else the
+// table's selected day, else all.
+function histRangeQuery() {
+  var f = (document.getElementById('hist-from') || {}).value;
+  var t = (document.getElementById('hist-to')   || {}).value;
+  if (f && t) return '?from=' + f + '&to=' + t;
+  var day = histCurrentDay();
+  return day ? ('?day=' + day) : '';
+}
+
+// Block an export/report when there is provably nothing to export, so the user
+// never gets an empty CSV/PDF or an empty LINE summary. We can only be sure
+// client-side for the loaded day/all view; a custom from–to range is bounded on
+// the server (which renders "no events" gracefully), so we let that through.
+function histExportEmptyGuard() {
+  var f = (document.getElementById('hist-from') || {}).value;
+  var t = (document.getElementById('hist-to')   || {}).value;
+  if (!(f && t) && _histEvents.length === 0) {
+    ZENTRA.toast('ยังไม่มีเหตุการณ์ให้ส่งออกในช่วงนี้', 'error');
+    return true;   // empty → caller should abort
+  }
+  return false;
+}
+
+// A filename tag for the chosen range/day: "2026-07-16", "2026-07-01_2026-07-16",
+// or "all". Keeps saved files self-describing without re-parsing histRangeQuery.
+function histRangeTag() {
+  var f = (document.getElementById('hist-from') || {}).value;
+  var t = (document.getElementById('hist-to')   || {}).value;
+  if (f && t) return f + '_' + t;
+  var day = histCurrentDay();
+  return day || 'all';
+}
+
+// Server-side CSV (real type/level, all rows) for the chosen range/day.
+// Saved through the native bridge — a raw window.location navigation blanks the
+// WebView (see ZENTRA.saveResource).
+function histExport() {
+  if (histExportEmptyGuard()) return;
+  ZENTRA.saveResource('/api/history/export.csv' + histRangeQuery(),
+    'zentra_history_' + histRangeTag() + '.csv');
+}
+
+// Standards-based PDF report for the chosen range/day.
+function histDownloadPdf() {
+  if (histExportEmptyGuard()) return;
+  ZENTRA.saveResource('/api/report/daily.pdf' + histRangeQuery(),
+    'zentra_report_' + histRangeTag() + '.pdf');
+}
+
+// Push a daily safety summary to the configured LINE groups (text only).
+async function histSendLine() {
+  // sendLine always uses the loaded day/all view (never the from–to range), so
+  // guard directly on what's loaded — don't push an empty summary.
+  if (_histEvents.length === 0) {
+    ZENTRA.toast('ยังไม่มีเหตุการณ์ให้ส่งเข้า LINE ในช่วงนี้', 'error');
+    return;
+  }
+  var day = histCurrentDay();
+  var body = day ? { day: day } : {};
+  try {
+    var d = await (await fetch('/api/report/send-line', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })).json();
+    if (d && d.ok) ZENTRA.toast('ส่งสรุปเข้า LINE แล้ว', 'success');
+    else ZENTRA.toast(d && d.error ? d.error : 'ส่งไม่สำเร็จ — ตรวจการตั้งค่า LINE', 'error');
+  } catch (_) { ZENTRA.toast('ส่งไม่สำเร็จ', 'error'); }
+}
+
+// Delete ALL history + evidence snapshots (frees disk/DB — the store grows
+// unbounded otherwise). Uses the themed confirm; refreshes the view after.
+async function histClear() {
+  var ok = await ZENTRA.confirm(
+    'ลบประวัติเหตุการณ์ทั้งหมด รวมภาพหลักฐานในเครื่อง? การกระทำนี้ย้อนกลับไม่ได้',
+    { danger: true, okText: 'ลบทั้งหมด' });
+  if (!ok) return;
+  try {
+    var res  = await fetch('/api/history/clear', { method: 'POST' });
+    var data = await res.json();
+    if (data && data.ok) {
+      ZENTRA.toast('ลบประวัติแล้ว ' + (data.removed || 0) + ' รายการ', 'success');
+      // Also clear the LIVE client-side counters + recent-alarm list so the
+      // dashboard doesn't keep showing events that were just deleted.
+      ZENTRA.state.alerts = { total: 0, warning: 0, alert: 0, emergency: 0 };
+      ZENTRA.state.recentAlarms = [];
+      ZENTRA.state.last_emergency = null;
+      if (ZENTRA._updateAlertCounters) ZENTRA._updateAlertCounters();
+      histRefresh();
+    } else {
+      ZENTRA.toast('ลบไม่สำเร็จ', 'error');
+    }
+  } catch (_) {
+    ZENTRA.toast('ลบไม่สำเร็จ', 'error');
+  }
+}
+
+// Themed date picker for the from/to range fields
+function histPick(id) {
+  var el = document.getElementById(id);
+  ZENTRA.datePicker(el, el.value || '', function (v) {
+    if (v === undefined) return;   // dismissed, no change
+    el.value = v || '';
+  });
+}
+
+function histLoadDays() {
+  var sel = document.getElementById('hist-day');
+  if (!sel) return Promise.resolve();
+  return fetch('/api/history/days').then(function(r) { return r.json(); }).then(function(d) {
+    var days = d.days || [];
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">ทุกวัน (ล่าสุด)</option>'
+      + days.map(function(x) { return '<option value="' + x + '">' + x + '</option>'; }).join('');
+    sel.value = cur;
+  }).catch(function() {});
+}
+
+function init_history() {
+  _histPage = 1;
+  _histEvents = [];
+  histLoadDays().then(histRefresh);
+}
+</script>

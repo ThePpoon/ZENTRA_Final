@@ -1,0 +1,20 @@
+# ZENTRA cloud inference server — Linux GPU deps.
+#
+# Assumes the base image ALREADY provides a CUDA build of torch + torchvision
+# (RunPod "PyTorch" template or GCP Deep Learning VM both do). We only add the
+# rest so we never fight the image's torch/CUDA versions.
+ultralytics==8.4.86
+opencv-python-headless
+numpy
+pillow
+fastapi==0.139.0
+uvicorn[standard]==0.50.2
+anyio
+requests
+python-dotenv
+
+# Optional — Thai on-frame text + fall detection. Safe to omit: the engine
+# degrades gracefully (plain Pillow labels / fall role reports unavailable).
+uharfbuzz
+freetype-py
+ai-edge-litert
