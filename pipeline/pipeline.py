@@ -145,6 +145,148 @@ def _draw_remote_overlay(frame, draw):
         return frame
 
 
+def apply_global_settings(settings: dict) -> dict:
+    """Apply the settings that live in the `config` MODULE, not on a pipeline:
+    LINE credentials + routing, AI thresholds, collection and cooldowns.
+
+    This used to sit inside Pipeline.apply_settings, so it only ran for cameras
+    that were already RUNNING. With no camera started the manager's loop had
+    nothing to iterate, cfg.LINE_OA_CHANNEL_ACCESS_TOKEN stayed empty, and the
+    History page's "send to LINE" button reported "no token configured" for a
+    site whose token was set and valid. Same for the AI sliders: they did not
+    take effect until a camera happened to be up.
+
+    Returns the per-level alert switches, which ARE per pipeline.
+    """
+    levels = {"warning": True, "alert": True, "emergency": True}
+    line = settings.get("line", {})
+    try:
+        import config as cfg
+        if "channel_access_token" in line:
+            cfg.LINE_OA_CHANNEL_ACCESS_TOKEN = line["channel_access_token"]
+
+        # ── Group routing ────────────────────────────────────────────
+        # NEW model: a flat list of groups; EVERY alert (any level) goes to
+        # EVERY enabled group. No per-level routing. Legacy per-level keys
+        # (group_supervisor/safety/emergency) are still honoured as a
+        # fallback so old settings.json files keep working.
+        #
+        # Guard on a REAL group (non-empty id), not merely a present list:
+        # _load_settings injects the default groups=[{id:""}], so the list is
+        # always present after merge. Taking this branch on the empty default
+        # would shadow a legacy user's group_supervisor id and route alerts to
+        # nobody until they re-save. Mirrors the UI's `hasRealGroup` check.
+        _groups = line.get("groups")
+        _has_real_group = isinstance(_groups, list) and any(
+            isinstance(g, dict) and str(g.get("id", "")).strip() for g in _groups)
+        if _has_real_group:
+            groups = _groups
+            enabled_ids: list[str] = []
+            cooldowns: dict[str, int] = {}
+            for g in groups:
+                if not isinstance(g, dict):
+                    continue
+                gid = str(g.get("id", "")).strip()
+                if not gid:
+                    continue
+                cooldowns[gid] = int(g.get("cooldown", 30) or 0)
+                if g.get("enabled", True) and gid not in enabled_ids:
+                    enabled_ids.append(gid)
+            # CRITICAL: config.ALERT_RECIPIENTS is built ONCE at import time
+            # from the (then-empty) group ids, and send_line_notify() picks
+            # recipients from it per level. Rebuild it here with the live ids
+            # so real detections actually reach LINE — and point every level
+            # at the SAME full list so all alerts go to all groups.
+            cfg.ALERT_RECIPIENTS = {
+                cfg.ALERT_LEVEL_WARNING:   list(enabled_ids),
+                cfg.ALERT_LEVEL_ALERT:     list(enabled_ids),
+                cfg.ALERT_LEVEL_EMERGENCY: list(enabled_ids),
+            }
+            cfg.LINE_ALL_GROUPS   = list(enabled_ids)   # daily report target
+            cfg.LINE_GROUP_COOLDOWN = cooldowns          # per-group throttle
+            # Keep legacy vars pointed at the first enabled group so any code
+            # (and the send-line validation) that still reads them stays valid.
+            first = enabled_ids[0] if enabled_ids else ""
+            cfg.LINE_OA_GROUP_SUPERVISOR = first
+            cfg.LINE_OA_GROUP_SAFETY     = first
+            cfg.LINE_OA_GROUP_EMERGENCY  = first
+        elif any(k in line for k in ("group_supervisor", "group_safety", "group_emergency")):
+            sup = line.get("group_supervisor", getattr(cfg, "LINE_OA_GROUP_SUPERVISOR", ""))
+            saf = line.get("group_safety",     getattr(cfg, "LINE_OA_GROUP_SAFETY", ""))
+            emg = line.get("group_emergency",  getattr(cfg, "LINE_OA_GROUP_EMERGENCY", ""))
+            cfg.LINE_OA_GROUP_SUPERVISOR = sup
+            cfg.LINE_OA_GROUP_SAFETY     = saf
+            cfg.LINE_OA_GROUP_EMERGENCY  = emg
+            allg = [g for g in dict.fromkeys([sup, saf, emg]) if g]
+            cfg.ALERT_RECIPIENTS = {
+                cfg.ALERT_LEVEL_WARNING:   list(allg),
+                cfg.ALERT_LEVEL_ALERT:     list(allg),
+                cfg.ALERT_LEVEL_EMERGENCY: list(allg),
+            }
+            cfg.LINE_ALL_GROUPS = list(allg)
+
+        # ── AI thresholds (INFERENCE_CONFIDENCE is read per-frame in
+        # detect_track → hot; confirm/cooldown need refresh_tunables) ──
+        ai = settings.get("ai", {})
+        if "ppe_confidence" in ai:
+            cfg.INFERENCE_CONFIDENCE = float(ai["ppe_confidence"])
+        if "abstain_weight" in ai:
+            # Minimum evidence weight before a camera may accuse anyone.
+            # Read per-frame inside _cat_hit, so the slider takes effect
+            # immediately — no engine rebuild. 0 disables the gate, which
+            # restores the exact pre-abstention behaviour.
+            w = float(ai["abstain_weight"])
+            cfg.PPE_ABSTAIN_W = w
+            cfg.PPE_ABSTAIN_ENABLED = w > 0.0
+        if "fall_bbox_ratio" in ai:
+            # This slider wrote FALL_BBOX_RATIO_THRESH, which the current
+            # fall_detector never reads — moving it did nothing. It now drives
+            # the value it was always meant to: FALL_AR_ABS_MIN, the absolute
+            # width/height floor above which a box counts as prone (read
+            # per-frame in _posture, so it takes effect without a model reload).
+            cfg.FALL_AR_ABS_MIN = float(ai["fall_bbox_ratio"])
+            cfg.FALL_BBOX_RATIO_THRESH = float(ai["fall_bbox_ratio"])  # legacy mirror
+        if "fall_confirm_frames" in ai:
+            # CLAMP to the window. The confirmer is N-of-M over a deque of
+            # maxlen=FALL_CONFIRM_WINDOW, so N > M can never be satisfied and a
+            # saved value above the window makes fall alarms mathematically
+            # impossible in the live app — silently. A safety module that cannot
+            # fire must never be reachable from a settings slider.
+            win = int(getattr(cfg, "FALL_CONFIRM_WINDOW", 5))
+            want = int(ai["fall_confirm_frames"])
+            if want > win:
+                print(f"[Pipeline] ⚠️ fall_confirm_frames={want} > window={win} "
+                      f"→ ตรึงไว้ที่ {win} (ค่าเดิมทำให้แจ้งเตือนการล้มไม่ได้เลย)")
+            cfg.FALL_CONFIRM_FRAMES = max(1, min(want, win))
+        if "fall_mode" in ai:
+            cfg.FALL_MODE = str(ai["fall_mode"])
+
+        # ── Dataset collection (Settings → ข้อมูล) ──
+        data = settings.get("data", {})
+        if "auto_collect" in data:
+            cfg.AUTO_COLLECT_FRAMES = bool(data["auto_collect"])
+        if "normal_interval_sec" in data:
+            cfg.COLLECT_NORMAL_INTERVAL_SEC = float(data["normal_interval_sec"])
+
+        alerts = settings.get("alerts", {})
+        if "violation_cooldown_seconds" in alerts:
+            cfg.VIOLATION_COOLDOWN_SECONDS = int(alerts["violation_cooldown_seconds"])
+        if "zone_cooldown_seconds" in alerts:
+            cfg.ZONE_COOLDOWN_SECONDS = int(alerts["zone_cooldown_seconds"])
+        if "fall_cooldown_seconds" in alerts:
+            cfg.FALL_COOLDOWN_SECONDS = int(alerts["fall_cooldown_seconds"])
+
+        # Per-level alert switches (disabled level → fully suppressed)
+        for lvl, key in (("warning", "warning_enabled"),
+                         ("alert", "alert_enabled"),
+                         ("emergency", "emergency_enabled")):
+            if key in alerts:
+                levels[lvl] = bool(alerts[key])
+    except ImportError:
+        pass
+    return levels
+
+
 # ================================================================
 # PIPELINE
 # ================================================================
@@ -233,6 +375,12 @@ class Pipeline:
             self.stop()
         self._stop_evt.clear()
         self._source_config = dict(source_config)
+        # Read the mirror choice from THIS camera's start config. The manager
+        # calls apply_settings() before start(), when _source_config is still
+        # empty and the camera id therefore reads as "cam0" — so without this
+        # every camera would inherit cam0's setting.
+        if source_config.get("flip_horizontal") is not None:
+            self._flip_override = bool(source_config["flip_horizontal"])
         # Cloud offload: when the source_config carries a cloud_url and is enabled,
         # run in remote mode (no local engine — POST frames to the cloud GPU).
         self._remote = None
@@ -590,134 +738,24 @@ class Pipeline:
 
     def apply_settings(self, settings: dict):
         try:
+            # Config-module settings (LINE, AI thresholds, cooldowns) —
+            # shared by the whole process, applied by one helper so they
+            # also take effect when no camera is running.
+            self._alert_levels = apply_global_settings(settings)
+
+            # Mirroring is PER CAMERA. A site mixes a laptop webcam (a selfie
+            # view, expected mirrored) with ceiling IP cameras (must not be),
+            # so one global switch could only ever be wrong for half of them.
+            # The legacy settings.camera.flip_horizontal is still honoured as
+            # the default for cameras that have no setting of their own.
             cam = settings.get("camera", {})
             if "flip_horizontal" in cam:
                 self._flip_override = bool(cam["flip_horizontal"])
-            line = settings.get("line", {})
-            try:
-                import config as cfg
-                if "channel_access_token" in line:
-                    cfg.LINE_OA_CHANNEL_ACCESS_TOKEN = line["channel_access_token"]
-
-                # ── Group routing ────────────────────────────────────────────
-                # NEW model: a flat list of groups; EVERY alert (any level) goes to
-                # EVERY enabled group. No per-level routing. Legacy per-level keys
-                # (group_supervisor/safety/emergency) are still honoured as a
-                # fallback so old settings.json files keep working.
-                #
-                # Guard on a REAL group (non-empty id), not merely a present list:
-                # _load_settings injects the default groups=[{id:""}], so the list is
-                # always present after merge. Taking this branch on the empty default
-                # would shadow a legacy user's group_supervisor id and route alerts to
-                # nobody until they re-save. Mirrors the UI's `hasRealGroup` check.
-                _groups = line.get("groups")
-                _has_real_group = isinstance(_groups, list) and any(
-                    isinstance(g, dict) and str(g.get("id", "")).strip() for g in _groups)
-                if _has_real_group:
-                    groups = _groups
-                    enabled_ids: list[str] = []
-                    cooldowns: dict[str, int] = {}
-                    for g in groups:
-                        if not isinstance(g, dict):
-                            continue
-                        gid = str(g.get("id", "")).strip()
-                        if not gid:
-                            continue
-                        cooldowns[gid] = int(g.get("cooldown", 30) or 0)
-                        if g.get("enabled", True) and gid not in enabled_ids:
-                            enabled_ids.append(gid)
-                    # CRITICAL: config.ALERT_RECIPIENTS is built ONCE at import time
-                    # from the (then-empty) group ids, and send_line_notify() picks
-                    # recipients from it per level. Rebuild it here with the live ids
-                    # so real detections actually reach LINE — and point every level
-                    # at the SAME full list so all alerts go to all groups.
-                    cfg.ALERT_RECIPIENTS = {
-                        cfg.ALERT_LEVEL_WARNING:   list(enabled_ids),
-                        cfg.ALERT_LEVEL_ALERT:     list(enabled_ids),
-                        cfg.ALERT_LEVEL_EMERGENCY: list(enabled_ids),
-                    }
-                    cfg.LINE_ALL_GROUPS   = list(enabled_ids)   # daily report target
-                    cfg.LINE_GROUP_COOLDOWN = cooldowns          # per-group throttle
-                    # Keep legacy vars pointed at the first enabled group so any code
-                    # (and the send-line validation) that still reads them stays valid.
-                    first = enabled_ids[0] if enabled_ids else ""
-                    cfg.LINE_OA_GROUP_SUPERVISOR = first
-                    cfg.LINE_OA_GROUP_SAFETY     = first
-                    cfg.LINE_OA_GROUP_EMERGENCY  = first
-                elif any(k in line for k in ("group_supervisor", "group_safety", "group_emergency")):
-                    sup = line.get("group_supervisor", getattr(cfg, "LINE_OA_GROUP_SUPERVISOR", ""))
-                    saf = line.get("group_safety",     getattr(cfg, "LINE_OA_GROUP_SAFETY", ""))
-                    emg = line.get("group_emergency",  getattr(cfg, "LINE_OA_GROUP_EMERGENCY", ""))
-                    cfg.LINE_OA_GROUP_SUPERVISOR = sup
-                    cfg.LINE_OA_GROUP_SAFETY     = saf
-                    cfg.LINE_OA_GROUP_EMERGENCY  = emg
-                    allg = [g for g in dict.fromkeys([sup, saf, emg]) if g]
-                    cfg.ALERT_RECIPIENTS = {
-                        cfg.ALERT_LEVEL_WARNING:   list(allg),
-                        cfg.ALERT_LEVEL_ALERT:     list(allg),
-                        cfg.ALERT_LEVEL_EMERGENCY: list(allg),
-                    }
-                    cfg.LINE_ALL_GROUPS = list(allg)
-
-                # ── AI thresholds (INFERENCE_CONFIDENCE is read per-frame in
-                # detect_track → hot; confirm/cooldown need refresh_tunables) ──
-                ai = settings.get("ai", {})
-                if "ppe_confidence" in ai:
-                    cfg.INFERENCE_CONFIDENCE = float(ai["ppe_confidence"])
-                if "abstain_weight" in ai:
-                    # Minimum evidence weight before a camera may accuse anyone.
-                    # Read per-frame inside _cat_hit, so the slider takes effect
-                    # immediately — no engine rebuild. 0 disables the gate, which
-                    # restores the exact pre-abstention behaviour.
-                    w = float(ai["abstain_weight"])
-                    cfg.PPE_ABSTAIN_W = w
-                    cfg.PPE_ABSTAIN_ENABLED = w > 0.0
-                if "fall_bbox_ratio" in ai:
-                    # This slider wrote FALL_BBOX_RATIO_THRESH, which the current
-                    # fall_detector never reads — moving it did nothing. It now drives
-                    # the value it was always meant to: FALL_AR_ABS_MIN, the absolute
-                    # width/height floor above which a box counts as prone (read
-                    # per-frame in _posture, so it takes effect without a model reload).
-                    cfg.FALL_AR_ABS_MIN = float(ai["fall_bbox_ratio"])
-                    cfg.FALL_BBOX_RATIO_THRESH = float(ai["fall_bbox_ratio"])  # legacy mirror
-                if "fall_confirm_frames" in ai:
-                    # CLAMP to the window. The confirmer is N-of-M over a deque of
-                    # maxlen=FALL_CONFIRM_WINDOW, so N > M can never be satisfied and a
-                    # saved value above the window makes fall alarms mathematically
-                    # impossible in the live app — silently. A safety module that cannot
-                    # fire must never be reachable from a settings slider.
-                    win = int(getattr(cfg, "FALL_CONFIRM_WINDOW", 5))
-                    want = int(ai["fall_confirm_frames"])
-                    if want > win:
-                        print(f"[Pipeline] ⚠️ fall_confirm_frames={want} > window={win} "
-                              f"→ ตรึงไว้ที่ {win} (ค่าเดิมทำให้แจ้งเตือนการล้มไม่ได้เลย)")
-                    cfg.FALL_CONFIRM_FRAMES = max(1, min(want, win))
-                if "fall_mode" in ai:
-                    cfg.FALL_MODE = str(ai["fall_mode"])
-
-                # ── Dataset collection (Settings → ข้อมูล) ──
-                data = settings.get("data", {})
-                if "auto_collect" in data:
-                    cfg.AUTO_COLLECT_FRAMES = bool(data["auto_collect"])
-                if "normal_interval_sec" in data:
-                    cfg.COLLECT_NORMAL_INTERVAL_SEC = float(data["normal_interval_sec"])
-
-                alerts = settings.get("alerts", {})
-                if "violation_cooldown_seconds" in alerts:
-                    cfg.VIOLATION_COOLDOWN_SECONDS = int(alerts["violation_cooldown_seconds"])
-                if "zone_cooldown_seconds" in alerts:
-                    cfg.ZONE_COOLDOWN_SECONDS = int(alerts["zone_cooldown_seconds"])
-                if "fall_cooldown_seconds" in alerts:
-                    cfg.FALL_COOLDOWN_SECONDS = int(alerts["fall_cooldown_seconds"])
-
-                # Per-level alert switches (disabled level → fully suppressed)
-                for lvl, key in (("warning", "warning_enabled"),
-                                 ("alert", "alert_enabled"),
-                                 ("emergency", "emergency_enabled")):
-                    if key in alerts:
-                        self._alert_levels[lvl] = bool(alerts[key])
-            except ImportError:
-                pass
+            _cid = self._source_config.get("camera_id", "cam0")
+            _mine = (settings.get("cameras") or {}).get(_cid)
+            if isinstance(_mine, dict) and "flip_horizontal" in _mine:
+                self._flip_override = bool(_mine["flip_horizontal"])
+                self._source_config["flip_horizontal"] = self._flip_override
 
             # ── Per-camera detection roles + PPE items for the running camera ──
             cams   = settings.get("cameras", {}) or {}
@@ -767,7 +805,26 @@ class Pipeline:
             cap = (cv2.VideoCapture(idx, cv2.CAP_DSHOW) if sys.platform == "win32"
                    else cv2.VideoCapture(idx))
         elif src == "rtsp":
-            cap = cv2.VideoCapture(src_cfg.get("rtsp_url", ""), cv2.CAP_FFMPEG)
+            # Bound how long a dead camera may hold this call.
+            #
+            # With no timeout, OpenCV/FFMPEG waits ~30 s for the stream and then
+            # retries — measured at 48.5 s for one unreachable camera. The UI
+            # awaits these starts, and a browser allows only ~6 connections per
+            # origin, so three unreachable cameras fill the pool and every later
+            # request queues behind them, including the fetch that loads the next
+            # screen. The app then looks frozen: the menu is drawn but clicking
+            # it does nothing for a minute or more. A camera that is actually on
+            # the LAN answers in well under a second, so a few seconds is a
+            # generous ceiling, not a tight one.
+            try:
+                import config as _cfg
+                to = int(getattr(_cfg, "RTSP_OPEN_TIMEOUT_MS", 6000))
+            except ImportError:
+                to = 6000
+            cap = cv2.VideoCapture(
+                src_cfg.get("rtsp_url", ""), cv2.CAP_FFMPEG,
+                [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, to,
+                 cv2.CAP_PROP_READ_TIMEOUT_MSEC, to])
         elif src == "file":
             cap = cv2.VideoCapture(src_cfg.get("video_file_path", ""))
         else:

@@ -1,56 +1,101 @@
 <div class="splash-screen">
 
-  <!-- Title (logo intentionally omitted for now) -->
-  <div class="splash-logo-wrap">
-    <span class="brand-mark splash-mark">Z</span>
-    <div class="splash-title-block">
-      <div class="splash-title">ZENTRA</div>
-      <div class="splash-subtitle">Industrial Safety AI&nbsp;System</div>
-      <div class="splash-version">NSC 2026</div>
+  <div class="splash-center">
+    <!-- Identity. Static: a control system announces itself once and gets
+         on with booting; animated marks read as a consumer product. -->
+    <div class="splash-identity">
+      <span class="brand-mark splash-mark">Z</span>
+      <div class="splash-title-block">
+        <div class="splash-title">ZENTRA</div>
+        <div class="splash-subtitle">Industrial Safety AI&nbsp;System</div>
+      </div>
+    </div>
+
+    <!-- Boot checklist. The old screen replaced one line of text over and
+         over, so the operator never saw WHAT had been verified — only that
+         something was happening. Listing the steps and ticking them off is
+         how appliance firmware reports a self-check, and it is the single
+         cheapest thing on this screen that makes the system look like it
+         is actually inspecting itself. -->
+    <div class="splash-steps" id="splash-steps"></div>
+
+    <div class="splash-progress-wrap">
+      <div class="splash-progress-track">
+        <div class="splash-progress-bar" id="splash-bar"></div>
+      </div>
+      <div class="splash-status" id="splash-status">กำลังเริ่มต้นระบบ</div>
+    </div>
+
+    <div class="splash-error" id="splash-error">
+      <svg class="splash-error-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        <path d="M12 9v4"/><path d="M12 17h.01"/>
+      </svg>
+      <span>เกิดข้อผิดพลาด — ไม่สามารถโหลดระบบได้</span>
     </div>
   </div>
 
-  <!-- Progress -->
-  <div class="splash-progress-wrap">
-    <div class="splash-progress-track">
-      <div class="splash-progress-bar" id="splash-bar"></div>
-    </div>
-    <div class="splash-status" id="splash-status">กำลังเริ่มต้นระบบ...</div>
-    <div class="splash-error" id="splash-error">เกิดข้อผิดพลาด — ไม่สามารถโหลดระบบได้</div>
+  <div class="splash-foot">
+    <span>ZENTRA v1.0.0</span>
+    <span class="splash-foot-sep"></span>
+    <span>ประมวลผลในเครื่อง · ข้อมูลไม่ออกนอกองค์กร</span>
+    <span class="splash-foot-sep"></span>
+    <span>NSC 2026</span>
   </div>
 
 </div>
 
 <script>
 function init_splash() {
-  const bar    = document.getElementById('splash-bar');
-  const status = document.getElementById('splash-status');
+  var bar    = document.getElementById('splash-bar');
+  var status = document.getElementById('splash-status');
+  var list   = document.getElementById('splash-steps');
 
-  const steps = [
-    { pct: 15,  msg: 'กำลังโหลดการตั้งค่า...' },
-    { pct: 35,  msg: 'เริ่มต้นเครื่องตรวจจับ AI (ประมวลผลในเครื่อง)...' },
-    { pct: 55,  msg: 'เตรียมโมดูล PPE / โซน / การล้ม...' },
-    { pct: 75,  msg: 'โหลดข้อมูลโซนความปลอดภัย...' },
-    { pct: 90,  msg: 'เริ่มต้นระบบ...' },
-    { pct: 100, msg: 'พร้อมใช้งาน' },
+  // Each entry is a real stage of startup, phrased as the thing being
+  // checked rather than as a percentage.
+  var steps = [
+    { pct: 15,  label: 'อ่านการตั้งค่าระบบ' },
+    { pct: 35,  label: 'เริ่มเครื่องตรวจจับ AI (ประมวลผลในเครื่อง)' },
+    { pct: 55,  label: 'เตรียมโมดูล PPE · พื้นที่อันตราย · การล้ม' },
+    { pct: 75,  label: 'โหลดพื้นที่เฝ้าระวัง' },
+    { pct: 90,  label: 'ตรวจสอบแหล่งภาพ' },
+    { pct: 100, label: 'พร้อมใช้งาน' },
   ];
 
-  let i = 0;
+  var CHECK = '<svg class="splash-step-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+            + ' stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M20 6 9 17l-5-5"/></svg>';
+
+  // Render every step up front, greyed out, so the list does not reflow as
+  // it fills in — the height is settled before the first tick.
+  list.innerHTML = steps.map(function (s, i) {
+    return '<div class="splash-step" id="splash-step-' + i + '">'
+         + '<span class="splash-step-mark">' + CHECK + '</span>'
+         + '<span class="splash-step-label">' + s.label + '</span>'
+         + '</div>';
+  }).join('');
+
+  var i = 0;
 
   function tick() {
     if (i >= steps.length) return;
-    const s = steps[i++];
+    var s  = steps[i];
+    var el = document.getElementById('splash-step-' + i);
+    i++;
+
     bar.style.width    = s.pct + '%';
-    status.textContent = s.msg;
+    status.textContent = s.label;
+    if (el) el.classList.add('done');
 
     if (s.pct >= 100) {
-      setTimeout(() => ZENTRA.navigate('source'), 600);
+      status.textContent = 'พร้อมใช้งาน';
+      setTimeout(function () { ZENTRA.navigate('source'); }, 600);
       return;
     }
-    setTimeout(tick, 480);
+    setTimeout(tick, 420);
   }
 
-  // Small initial delay so the window paints before the first step
-  setTimeout(tick, 200);
+  setTimeout(tick, 200);   // let the window paint before the first step
 }
 </script>

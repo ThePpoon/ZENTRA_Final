@@ -322,16 +322,34 @@ function camStartBody(c) {
   if (c.source === 'file')   body.video_file_path = c.video_file_path || '';
   return body;
 }
+// One start per camera at a time.
+//
+// Opening an unreachable IP camera takes many seconds, and the auto-start
+// retry ran on a fixed timer regardless of whether the previous attempt had
+// come back. Attempts for the same camera therefore stacked up, and once six
+// were in flight the browser's per-origin connection limit was reached: every
+// later request queued behind them — including the one navigate() makes to
+// load the next screen. The menu still rendered, and clicking it did nothing.
+// The app was not hung; it was waiting in line behind its own retries.
+var _camStarting = {};
 function camStart(id) {
   var c = camById(id);
   if (!c) return;
+  if (_camStarting[id]) return;      // already trying this one
+  _camStarting[id] = true;
   ZENTRA.connectWS();
   fetch('/api/pipeline/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(camStartBody(c)) })
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (!d.ok) { ZENTRA.toast(d.error || 'เปิดกล้องไม่สำเร็จ', 'error'); }
       else { ZENTRA.startStatusPoll(); camRefreshStatus(); }
-    }).catch(function(){ ZENTRA.toast('เชื่อมต่อระบบไม่สำเร็จ', 'error'); });
+    }).catch(function(){ ZENTRA.toast('เชื่อมต่อระบบไม่สำเร็จ', 'error'); })
+    .then(function(){
+      // Release only when the attempt has actually resolved, so the backoff
+      // timer can never start a second one on top of a pending first.
+      delete _camStarting[id];
+      _camLastTry[id] = Date.now();
+    });
 }
 function camStop(id) {
   fetch('/api/pipeline/stop', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ camera_id: id }) })

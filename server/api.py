@@ -598,6 +598,10 @@ async def pipeline_start(body: dict[str, Any]):
         "camera_id":       camera_id,
         "roles":           roles,
         "ppe_items":       ppe_items,
+        # Per-camera mirror. None = this camera has no setting of its own, and
+        # the pipeline falls back to the global default (and then to "webcam
+        # only", which is the sensible default for a selfie-view laptop cam).
+        "flip_horizontal": reg.get("flip_horizontal"),
         "cloud_enabled":   bool(cloud.get("enabled")),
         "cloud_url":       cloud.get("url", ""),
         "cloud_token":     cloud.get("token", ""),

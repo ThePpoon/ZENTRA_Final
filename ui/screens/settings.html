@@ -148,11 +148,18 @@
     <button class="btn btn-outline btn-sm mb-3" onclick="changeSource()">เปลี่ยนแหล่งภาพ</button>
     <label class="input-label">หมายเลข Webcam (USB)</label>
     <input class="input mb-2" id="cam-idx" type="number" value="0" min="0" max="9" style="width:80px">
-    <div class="toggle-wrap mt-2">
-      <label class="toggle"><input type="checkbox" id="flip-h" checked>
-      <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-      <span class="text-sub">พลิกภาพแนวนอน (Mirror)</span>
+  </div>
+
+  <!-- Mirroring is per camera: a laptop webcam is a selfie view and is
+       expected to be mirrored, a ceiling IP camera must not be. One global
+       switch was necessarily wrong for one of them. -->
+  <div class="settings-group">
+    <div class="settings-group-title">พลิกภาพแนวนอน (Mirror)</div>
+    <div class="text-xs text-muted" style="margin-bottom:10px;line-height:1.55">
+      เลือกเฉพาะกล้องที่ต้องการให้พลิกซ้าย-ขวา · Webcam มักต้องพลิก (ภาพเหมือนส่องกระจก)
+      ส่วนกล้อง IP ติดเพดานไม่ต้อง
     </div>
+    <div id="flip-list"></div>
   </div>
   <button class="btn btn-primary mt-2" onclick="saveSettings()">บันทึก</button>
   <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
@@ -499,7 +506,7 @@ function showSection(name, el) {
     const cam = _settings.camera || {};
     renderCurrentSources();
     const idx = document.getElementById('cam-idx');    if (idx) idx.value = cam.webcam_index ?? 0;
-    const flip= document.getElementById('flip-h');     if (flip) flip.checked = cam.flip_horizontal ?? true;
+    renderFlipList();
   }
   if (name === 'about') {
     fetch('/api/status').then(r => r.json()).then(d => {
@@ -568,7 +575,16 @@ async function saveSettings() {
   const tu  = document.getElementById('tog-upload-img'); if (tu) { s.alerts = s.alerts || {}; s.alerts.upload_images = tu.checked; }
 
   const idx  = document.getElementById('cam-idx'); if (idx)  { s.camera = s.camera || {}; s.camera.webcam_index = parseInt(idx.value); }
-  const flip = document.getElementById('flip-h');  if (flip) { s.camera = s.camera || {}; s.camera.flip_horizontal = flip.checked; }
+  // Per-camera mirror. Only written when the section is mounted, so saving
+  // from another section leaves every camera's choice alone.
+  const flipBox = document.getElementById('flip-list');
+  if (flipBox) {
+    s.cameras = s.cameras || {};
+    flipBox.querySelectorAll('input[type="checkbox"][data-cam]').forEach(chk => {
+      const id = chk.getAttribute('data-cam');
+      s.cameras[id] = Object.assign({}, s.cameras[id] || {}, { flip_horizontal: chk.checked });
+    });
+  }
 
   // NOTE: settings.cloud is deliberately NOT touched here. The Cloud Offload
   // screen was removed, but the feature and its stored values stay — a save
@@ -732,6 +748,39 @@ async function renderCurrentSources() {
       + '<span class="text-xs" style="flex-shrink:0;color:' + dot + '">'
       +   (on ? 'กำลังใช้งาน' : 'ไม่ได้เชื่อมต่อ') + '</span>'
       + '</div>';
+  }).join('');
+}
+
+/* One checkbox per registered camera. The default when a camera has never
+   been set follows the old rule — mirror a webcam, leave everything else
+   alone — so nothing changes for a site that never opens this section. */
+function renderFlipList() {
+  const box = document.getElementById('flip-list');
+  if (!box) return;
+  const cams = (_settings && _settings.cameras) || {};
+  const ids = Object.keys(cams).sort();
+  if (!ids.length) {
+    box.innerHTML = '<div class="text-muted text-xs" style="font-style:italic">'
+      + 'ยังไม่ได้เพิ่มกล้อง</div>';
+    return;
+  }
+  const legacy = ((_settings || {}).camera || {}).flip_horizontal;
+  box.innerHTML = ids.map(id => {
+    const c = cams[id] || {};
+    const on = (c.flip_horizontal !== undefined && c.flip_horizontal !== null)
+      ? !!c.flip_horizontal
+      : (legacy !== undefined ? !!legacy : (c.source || 'webcam') === 'webcam');
+    const s = sourceLabel(c);
+    return '<label style="display:flex;align-items:center;gap:10px;padding:9px 11px;'
+      + 'margin-bottom:6px;border-radius:9px;background:var(--bg-card-alt);'
+      + 'border:1px solid var(--border);cursor:pointer">'
+      + '<input type="checkbox" data-cam="' + ZENTRA.esc(id) + '"' + (on ? ' checked' : '')
+      +   ' style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="font-size:13px;font-weight:600;color:var(--text)">'
+      +     ZENTRA.esc(c.name || id) + '</div>'
+      +   '<div class="text-xs text-muted" style="margin-top:2px">' + s.kind + '</div>'
+      + '</div></label>';
   }).join('');
 }
 

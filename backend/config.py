@@ -418,6 +418,13 @@ FALL_POSE_WORKERS     = int(os.getenv("FALL_POSE_WORKERS", "4"))   # mediapipe b
 # and the fall loop's budget at FALL_LOOP_FPS is tight — tunable, not hard-coded.
 FALL_POSE_IMGSZ       = int(os.getenv("FALL_POSE_IMGSZ", "640"))
 FALL_LOOP_FPS         = int(os.getenv("FALL_LOOP_FPS", "15"))
+# ── RTSP connect budget ─────────────────────────────────────────────────────
+# How long cv2.VideoCapture may spend opening (and reading from) an IP camera
+# before giving up. FFMPEG's default is ~30 s with a retry, so ONE unreachable
+# camera held a /api/pipeline/start request for 48 s; three of them saturated
+# the browser's per-origin connection pool and the whole UI stopped responding.
+# A camera on the same LAN answers in well under a second.
+RTSP_OPEN_TIMEOUT_MS  = int(os.getenv("RTSP_OPEN_TIMEOUT_MS", "6000"))
 # The classifier's 30-step input is resampled onto a fixed 1/FALL_LOOP_FPS grid,
 # so its window stays 2 s wide however fast frames actually arrive (they arrive
 # slower with every camera added). This is the minimum number of REAL samples

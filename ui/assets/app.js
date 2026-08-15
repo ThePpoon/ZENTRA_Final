@@ -675,27 +675,24 @@ ZENTRA.icon = function (name) {
 };
 
 function renderSidebar(active) {
-  var mainItems = [
+  var items = [
     { id: 'dashboard',   ico: 'dashboard', label: 'แดชบอร์ด'    },
     { id: 'cameras',     ico: 'cameras',   label: 'กล้อง'       },
     { id: 'zone_editor', ico: 'zone',      label: 'แก้ไขพื้นที่' },
     { id: 'history',     ico: 'history',   label: 'ประวัติ'     },
     { id: 'settings',    ico: 'settings',  label: 'ตั้งค่า'      },
   ];
-  var nav = mainItems.map(function(it) {
+  var nav = items.map(function (it) {
     return '<button class="sb-item' + (it.id === active ? ' active' : '') + '"'
-      + ' onclick="ZENTRA.navigate(\'' + it.id + '\')">'
+      + ' onclick="ZENTRA.navigate(\'' + it.id + '\')"'
+      + ' aria-label="' + it.label + '">'
       + '<span class="sb-ico">' + ZENTRA.icon(it.ico) + '</span>'
       + '<span class="sb-tooltip">' + it.label + '</span>'
       + '</button>';
   }).join('');
 
   return '<div class="sb-brand">' + ZENTRA.icon('shield') + '</div>'
-    + '<nav class="sb-nav">' + nav + '</nav>'
-    + '<div class="sb-footer">'
-    + '<span class="nav-clock" id="nav-clock">--:--:--</span>'
-    + '<span class="sys-pill ok" id="sys-pill"><span class="sys-dot"></span><span id="sys-pill-text">ปกติ</span></span>'
-    + '</div>';
+    + '<nav class="sb-nav">' + nav + '</nav>';
 }
 
 function renderTopbar() {
@@ -711,6 +708,13 @@ function renderTopbar() {
     + '<span class="topbar-site">ZENTRA &middot; โรงงาน</span>'
     + '</div>'
     + '<div class="topbar-right">'
+    // Clock + system state used to sit at the foot of the icon rail, where
+    // 68px forced them to 10px type. In the header they are readable and sit
+    // where a VMS operator expects the machine's state to be.
+    + '<span class="sys-pill ok" id="sys-pill"><span class="sys-dot"></span>'
+    +   '<span id="sys-pill-text">ปกติ</span></span>'
+    + '<span class="nav-clock" id="nav-clock">--:--:--</span>'
+    + '<span class="topbar-sep"></span>'
     // Lock badge: shown only when the server requires a token (ZENTRA_API_TOKEN),
     // so the operator can see at a glance that the API is protected.
     + (ZENTRA_TOKEN

@@ -243,6 +243,17 @@ class MultiCameraManager:
     def apply_settings(self, settings: dict):
         self._last_settings = dict(settings)
         self.apply_stream_settings(settings.get("display") or {})
+        # Process-wide config (LINE credentials + routing, AI thresholds,
+        # cooldowns) — applied even with NO camera running. It used to happen
+        # only inside the per-camera loop below, so on a box where nothing had
+        # been started yet cfg.LINE_OA_CHANNEL_ACCESS_TOKEN was still empty and
+        # the History page's "send to LINE" button reported the token as
+        # unconfigured for a site whose token was set and working.
+        try:
+            from pipeline.pipeline import apply_global_settings
+            apply_global_settings(settings)
+        except Exception as e:
+            print(f"[Manager] global settings: {e}")
         with self._lock:
             items = list(self._cams.items())
 

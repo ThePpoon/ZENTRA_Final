@@ -671,9 +671,13 @@ class PPEEngine:
                    for (_, x, y) in self._fall_incidents):
                 continue
             self._fall_incidents.append((tnow, cx, cy))
+            # Plain text, like the PPE and zone messages. The level already
+            # carries the urgency (and the UI colours the row by it), so an
+            # emoji in the message only made fall alerts look different from
+            # every other alert in the same list.
             events.append({"type": "fall", "track_id": tid, "key": k,
                            "level": cfg.ALERT_LEVEL_EMERGENCY,
-                           "msg": "⚠️ ตรวจพบการล้ม"})
+                           "msg": "ตรวจพบการล้ม"})
         self.fconf.gc(live)
         self._fallen &= {t for (t,) in live}
         return events
