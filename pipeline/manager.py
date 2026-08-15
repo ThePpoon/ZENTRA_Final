@@ -190,6 +190,46 @@ class MultiCameraManager:
         p = self.get(camera_id)
         return bool(p and p.is_running())
 
+    @staticmethod
+    def _device_key(cfg: dict):
+        """What physical thing this config opens, or None when sharing is fine.
+
+        A USB camera is EXCLUSIVE. Two VideoCapture handles on one webcam both
+        appear to open and both read frames — and then releasing either one
+        kills the other's stream (measured: the survivor's next read() fails
+        immediately). Two registry entries pointing at the same device is
+        therefore not a duplicate tile, it is a camera that freezes as soon as
+        the other is stopped.
+
+        Two connections to one RTSP URL work but pull the stream twice for the
+        same picture, so they are refused as well. Video files share happily —
+        separate handles, separate read positions — so they return None.
+        """
+        src = cfg.get("source", "webcam")
+        if src == "webcam":
+            return ("webcam", int(cfg.get("webcam_index", 0) or 0))
+        if src == "rtsp":
+            url = (cfg.get("rtsp_url") or "").strip()
+            return ("rtsp", url) if url else None
+        return None
+
+    def device_conflict(self, camera_id: str, source_config: dict):
+        """Camera id already holding the device this config wants, else None.
+        Restarting the SAME camera is not a conflict — start() stops it first."""
+        want = self._device_key(source_config)
+        if want is None:
+            return None
+        with self._lock:
+            items = list(self._cams.items())
+        for cid, cam in items:
+            if cid == camera_id:
+                continue
+            if not (cam.pipeline and cam.pipeline.is_running()):
+                continue
+            if self._device_key(cam.source_config or {}) == want:
+                return cid
+        return None
+
     def any_running(self) -> bool:
         return len(self.active_ids()) > 0
 

@@ -459,6 +459,24 @@ function camAddSave() {
     cam.video_file_path = document.getElementById('cam-add-path').value.trim();
     if (!cam.video_file_path) { err.textContent = 'กรุณาเลือกไฟล์วิดีโอ'; return; }
   }
+  // A USB camera cannot be opened twice: the second handle appears to work and
+  // then stopping either one freezes the other. Catch it while the operator is
+  // still on the form, rather than letting them save a camera that can never
+  // run alongside the one it collides with.
+  var clash = _camList.filter(function (c) {
+    if (c.id === _addEditId) return false;
+    if (c.source !== cam.source) return false;
+    if (cam.source === 'webcam') return (c.webcam_index || 0) === (cam.webcam_index || 0);
+    if (cam.source === 'rtsp')   return (c.rtsp_url || '') === (cam.rtsp_url || '');
+    return false;
+  })[0];
+  if (clash) {
+    err.textContent = cam.source === 'webcam'
+      ? 'อุปกรณ์หมายเลขนี้ถูกใช้โดย "' + clash.name + '" อยู่แล้ว'
+      : 'RTSP URL นี้ซ้ำกับ "' + clash.name + '"';
+    return;
+  }
+
   var id = _addEditId || camNextId();
   cam.id = id;
   var existing = camById(id);

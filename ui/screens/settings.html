@@ -621,11 +621,26 @@ function sourceLabel(cam) {
   return { kind: 'Webcam (USB)', detail: 'อุปกรณ์หมายเลข ' + (cam.webcam_index ?? 0), ok: true };
 }
 
+/* The cameras belonging to the source actually in use.
+   A site runs one KIND of source at a time — a USB webcam or a set of IP
+   cameras — and the registry can still hold entries from a previous choice.
+   Listing those alongside the live ones says the site has cameras it does
+   not. Falls back to everything when nothing matches, so a mismatch shows
+   too much rather than an empty screen. */
+function camsInUse() {
+  const cams = (_settings && _settings.cameras) || {};
+  const ids = Object.keys(cams).sort();
+  const src = ((_settings || {}).camera || {}).source;
+  if (!src) return ids;
+  const mine = ids.filter(id => ((cams[id] || {}).source || 'webcam') === src);
+  return mine.length ? mine : ids;
+}
+
 async function renderCurrentSources() {
   const box = document.getElementById('cur-source-list');
   if (!box) return;
   const cams = (_settings && _settings.cameras) || {};
-  const ids = Object.keys(cams).sort();
+  const ids = camsInUse();
   if (!ids.length) {
     box.innerHTML = '<div class="text-muted text-xs" style="font-style:italic">'
       + 'ยังไม่ได้เพิ่มกล้อง — กด "เปลี่ยนแหล่งภาพ" เพื่อเชื่อมต่อ</div>';
@@ -669,7 +684,7 @@ function renderFlipList() {
   const box = document.getElementById('flip-list');
   if (!box) return;
   const cams = (_settings && _settings.cameras) || {};
-  const ids = Object.keys(cams).sort();
+  const ids = camsInUse();          // same filter as the source list above
   if (!ids.length) {
     box.innerHTML = '<div class="text-muted text-xs" style="font-style:italic">'
       + 'ยังไม่ได้เพิ่มกล้อง</div>';

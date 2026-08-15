@@ -215,6 +215,8 @@ async function browseFile() {
    middle row is deleted. Values are read back off the DOM first so typing
    survives the rebuild. */
 var _rtspRows = [''];
+// Webcam index from the saved settings, read once by init_source().
+var _srcWebcamIndex = 0;
 var RTSP_MAX = 8;
 
 function rtspSync() {
@@ -277,19 +279,35 @@ function rtspUrls() {
 // registry is what every other screen reads (grid, zones, cameras), so a
 // camera started without being registered would run while appearing nowhere
 // in the app.
-async function saveRtspCameras(entries) {
+/* Write the registry to match what was just chosen — for EVERY source type.
+   Only the RTSP branch used to do this, so connecting a webcam started cam0
+   as a webcam while settings.cameras still listed the previous RTSP cameras.
+   Settings then showed four IP cameras, and the mirror list offered four rows,
+   for a site running one USB camera. The registry is what every other screen
+   reads, so it has to describe the source actually in use.
+
+   `cams` = [{source, rtsp_url?, video_file_path?, webcam_index?}, ...] */
+async function saveCameras(cams) {
   var s = await (await fetch('/api/settings')).json();
   var prev = s.cameras || {};
   var next = {};
-  entries.forEach(function (e, n) {
+  cams.forEach(function (c, n) {
     var id = 'cam' + n;
+    // Carry the previous entry's roles/PPE items forward when the slot is
+    // reused, so re-connecting does not silently switch detection off.
     next[id] = Object.assign(
       { roles: [], ppe_items: ['helmet', 'vest'] },
       prev[id] || {},
-      { name: 'กล้อง #' + (n + 1), source: 'rtsp', rtsp_url: e.url,
-        webcam_index: 0, video_file_path: '' });
+      { name: 'กล้อง #' + (n + 1),
+        source: c.source,
+        rtsp_url: c.rtsp_url || '',
+        video_file_path: c.video_file_path || '',
+        webcam_index: c.webcam_index || 0 });
   });
   s.cameras = next;
+  // Keep the legacy single-camera block honest too — some older code paths
+  // still read settings.camera.source.
+  s.camera = Object.assign({}, s.camera || {}, { source: cams[0].source });
   await fetch('/api/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(s),
@@ -316,11 +334,29 @@ async function connectSource() {
       var dup = entries.map(function (e) { return e.url; })
                        .filter(function (u, i, a) { return a.indexOf(u) !== i; });
       if (dup.length) throw new Error('มี URL ซ้ำกัน — กล้องแต่ละตัวต้องคนละที่อยู่');
-      ids = await saveRtspCameras(entries);
+      ids = await saveCameras(entries.map(function (e) {
+        return { source: 'rtsp', rtsp_url: e.url };
+      }));
     } else if (_selectedSource === 'file') {
       body.video_file_path = document.getElementById('file-path').value.trim();
       if (!body.video_file_path) throw new Error('กรุณาเลือกไฟล์วิดีโอ');
+      ids = await saveCameras([{ source: 'file', video_file_path: body.video_file_path }]);
+    } else {
+      // Webcam. The registry becomes this ONE device — the previous cameras
+      // are no longer the site's source and must not linger in Settings.
+      body.webcam_index = _srcWebcamIndex;
+      ids = await saveCameras([{ source: 'webcam', webcam_index: _srcWebcamIndex }]);
     }
+
+    // Stop whatever was running first. Switching source rewrites the registry,
+    // so a camera dropped from it would otherwise keep streaming with no entry
+    // anywhere in the app — a tile with no settings behind it.
+    try {
+      await fetch('/api/pipeline/stop', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+    } catch (_) { }
 
     // Start every camera AT ONCE rather than one after another. Awaiting them
     // in sequence meant the wait was the sum of all of them, and an offline
@@ -391,6 +427,7 @@ function init_source() {
   _rtspRows = [''];
   rtspRender();          // draw the single starting row before the fetch lands
   fetch('/api/settings').then(function (r) { return r.json(); }).then(function (s) {
+    _srcWebcamIndex = parseInt((s.camera || {}).webcam_index || 0, 10) || 0;
     // Show the site as it stands: one row per camera already registered, so
     // returning here does not ask the operator to retype what is saved.
     var cams = s.cameras || {};

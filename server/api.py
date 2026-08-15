@@ -608,6 +608,20 @@ async def pipeline_start(body: dict[str, Any]):
         "cloud_fps":       cloud.get("fps", 10),
     }
 
+    # Refuse to open a device another running camera already holds. A webcam is
+    # exclusive: a second VideoCapture on it appears to work, and then stopping
+    # either one leaves the other unable to read a frame — the app shows two
+    # tiles of the same camera and closing one freezes the other. Better to say
+    # so than to hand out a stream that breaks later.
+    busy = manager.device_conflict(camera_id, src_cfg)
+    if busy:
+        other = _camera_label(busy)
+        return JSONResponse(
+            {"ok": False,
+             "error": f"อุปกรณ์นี้ถูกใช้งานโดย \"{other}\" อยู่แล้ว — "
+                      "กล้องหนึ่งตัวเปิดพร้อมกันสองหน้าต่างไม่ได้"},
+            status_code=409)
+
     # Run blocking start() in thread pool so we don't block the event loop
     loop   = asyncio.get_running_loop()
     ok     = await loop.run_in_executor(None, manager.start, camera_id, src_cfg)
