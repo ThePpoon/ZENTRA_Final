@@ -1600,6 +1600,77 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .rtsp-state.fail { background: var(--status-alarm); }
 @keyframes rtspSpin { to { transform: rotate(360deg); } }
 
+/* Add / remove a camera row. Both are quiet controls: adding a camera is a
+   routine step, not the screen's primary action, which stays "เชื่อมต่อ". */
+.rtsp-del {
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.rtsp-del svg { width: 13px; height: 13px; }
+.rtsp-del:hover:not(:disabled) {
+  color: var(--status-alarm);
+  border-color: var(--status-alarm);
+  background: var(--red-dim);
+}
+.rtsp-del:disabled { opacity: .35; cursor: default; }
+.rtsp-del:focus-visible { outline: 2px solid var(--status-info); outline-offset: 1px; }
+
+.rtsp-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--sp-2);
+  padding: 6px var(--sp-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.rtsp-add svg { width: 13px; height: 13px; }
+.rtsp-add:hover:not(:disabled) {
+  color: var(--status-info);
+  border-color: var(--status-info);
+  background: var(--accent-dim);
+}
+.rtsp-add:disabled { opacity: .4; cursor: default; }
+.rtsp-add:focus-visible { outline: 2px solid var(--status-info); outline-offset: 1px; }
+
+/* A capability note, not a warning: it says what the system supports and
+   where the cost is, so it sits quieter than an error. */
+.src-note {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 2px solid var(--border-strong);
+  background: var(--surface-overlay);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+.src-hint code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 1px 5px;
+  word-break: break-all;
+}
+
 /* ── Inline alert ─────────────────────────────────── */
 .src-alert {
   display: none;

@@ -31,7 +31,7 @@
           </span>
           <div class="src-option-text">
             <div class="src-option-name">Webcam (USB)</div>
-            <div class="src-option-desc">กล้องที่เสียบกับเครื่องนี้โดยตรง</div>
+            <div class="src-option-desc">กล้องที่เสียบกับเครื่องโดยตรง</div>
           </div>
           <span class="src-option-check" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
@@ -78,33 +78,26 @@
         </div>
       </div>
 
-      <!-- RTSP slots. Each row now owns a status chip, so a partial connect
-           reports which camera failed instead of one number for all three. -->
+      <!-- RTSP slots. One row to begin with — most sites start by proving a
+           single camera works — and rows are added on demand rather than
+           presenting three empty boxes as if all three were required. Each row
+           owns a status chip, so a partial connect reports WHICH camera failed
+           instead of one number covering all of them. -->
       <div class="src-sub" id="rtsp-input">
         <div class="src-field-label">ที่อยู่กล้อง (RTSP URL)</div>
-        <div class="rtsp-rows">
-          <div class="rtsp-row" data-idx="0">
-            <span class="rtsp-num">1</span>
-            <input class="input" id="rtsp-url-0" type="text" spellcheck="false"
-                   placeholder="rtsp://admin:รหัสผ่าน@192.168.1.4:554/Streaming/Channels/101">
-            <span class="rtsp-state" id="rtsp-state-0"></span>
-          </div>
-          <div class="rtsp-row" data-idx="1">
-            <span class="rtsp-num">2</span>
-            <input class="input" id="rtsp-url-1" type="text" spellcheck="false"
-                   placeholder="rtsp://admin:รหัสผ่าน@192.168.1.3:554/Streaming/Channels/101">
-            <span class="rtsp-state" id="rtsp-state-1"></span>
-          </div>
-          <div class="rtsp-row" data-idx="2">
-            <span class="rtsp-num">3</span>
-            <input class="input" id="rtsp-url-2" type="text" spellcheck="false"
-                   placeholder="rtsp://admin:รหัสผ่าน@192.168.1.2:554/Streaming/Channels/101">
-            <span class="rtsp-state" id="rtsp-state-2"></span>
-          </div>
-        </div>
+        <div class="rtsp-rows" id="rtsp-rows"></div>
+        <button class="rtsp-add" type="button" onclick="rtspAddRow()" id="rtsp-add-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          เพิ่มกล้อง
+        </button>
         <div class="src-hint">
-          กรอกกี่ช่องก็ได้ ช่องว่างจะถูกข้าม · พอร์ต RTSP คือ <b>554</b> (ไม่ใช่ 8000 ที่เห็นใน SADP)
-          · ถ้ารหัสผ่านมี <b>@</b> ให้พิมพ์เป็น <b>%40</b>
+          ตัวอย่าง: <code>rtsp://ชื่อผู้ใช้:รหัสผ่าน@ไอพีกล้อง:554/Streaming/Channels/101</code>
+        </div>
+        <div class="src-note">
+          ระบบรองรับกล้องได้มากกว่า 1 ตัว แต่ถ้ามากเกินไปอาจส่งผลต่อการทำงานของระบบ
         </div>
       </div>
 
@@ -130,9 +123,6 @@
         <button class="btn btn-primary src-btn-main" onclick="connectSource()" id="connect-btn">
           เชื่อมต่อ
         </button>
-        <button class="btn btn-ghost" type="button" onclick="testSource()" id="test-btn">
-          ทดสอบการเชื่อมต่อ
-        </button>
       </div>
 
       <button class="src-demo" type="button" onclick="startDemo()" id="demo-btn">
@@ -153,10 +143,6 @@
         <li><span class="src-bullet" data-tone="info"></span>เฝ้าพื้นที่หวงห้าม</li>
         <li><span class="src-bullet" data-tone="alarm"></span>ตรวจจับการล้ม</li>
       </ul>
-      <div class="source-brand-foot">
-        <span class="status-dot ok" aria-hidden="true"></span>
-        ประมวลผลในเครื่อง · ข้อมูลไม่ออกนอกองค์กร (PDPA)
-      </div>
     </div>
   </div>
 
@@ -223,9 +209,67 @@ async function browseFile() {
   }
 }
 
+/* ── RTSP rows: added and removed on demand ─────────────────────────────
+   Rows are rebuilt from an array rather than edited in place, so the visible
+   numbering (1, 2, 3…) and the element ids can never drift apart after a
+   middle row is deleted. Values are read back off the DOM first so typing
+   survives the rebuild. */
+var _rtspRows = [''];
+var RTSP_MAX = 8;
+
+function rtspSync() {
+  _rtspRows = _rtspRows.map(function (v, i) {
+    var el = document.getElementById('rtsp-url-' + i);
+    return el ? el.value : v;
+  });
+}
+
+function rtspRender() {
+  var box = document.getElementById('rtsp-rows');
+  if (!box) return;
+  var only = _rtspRows.length <= 1;
+  box.innerHTML = _rtspRows.map(function (v, i) {
+    return '<div class="rtsp-row" data-idx="' + i + '">'
+      + '<span class="rtsp-num">' + (i + 1) + '</span>'
+      + '<input class="input" id="rtsp-url-' + i + '" type="text" spellcheck="false"'
+      +   ' value="' + ZENTRA.esc(v || '') + '"'
+      +   ' placeholder="rtsp://ชื่อผู้ใช้:รหัสผ่าน@ไอพีกล้อง:554/Streaming/Channels/101">'
+      + '<span class="rtsp-state" id="rtsp-state-' + i + '"></span>'
+      // The last remaining row keeps its button so the control does not jump
+      // around, but disabled — removing it would leave nothing to type into.
+      + '<button class="rtsp-del" type="button" onclick="rtspDelRow(' + i + ')"'
+      +   (only ? ' disabled' : '')
+      +   ' title="' + (only ? 'ต้องมีอย่างน้อย 1 ช่อง' : 'ลบช่องนี้') + '"'
+      +   ' aria-label="ลบกล้องช่องที่ ' + (i + 1) + '">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"'
+      +   ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M5 12h14"/></svg></button>'
+      + '</div>';
+  }).join('');
+  var add = document.getElementById('rtsp-add-btn');
+  if (add) add.disabled = _rtspRows.length >= RTSP_MAX;
+}
+
+function rtspAddRow() {
+  rtspSync();
+  if (_rtspRows.length >= RTSP_MAX) return;
+  _rtspRows.push('');
+  rtspRender();
+  var el = document.getElementById('rtsp-url-' + (_rtspRows.length - 1));
+  if (el) el.focus();
+}
+
+function rtspDelRow(i) {
+  rtspSync();
+  if (_rtspRows.length <= 1) return;
+  _rtspRows.splice(i, 1);
+  rtspRender();
+}
+
 function rtspUrls() {
-  return [0, 1, 2]
-    .map(function (i) { return { url: (document.getElementById('rtsp-url-' + i).value || '').trim(), idx: i }; })
+  rtspSync();
+  return _rtspRows
+    .map(function (v, i) { return { url: (v || '').trim(), idx: i }; })
     .filter(function (x) { return x.url; });
 }
 
@@ -251,58 +295,6 @@ async function saveRtspCameras(entries) {
     body: JSON.stringify(s),
   });
   return Object.keys(next);
-}
-
-// Dry run: open each stream, report per row, then stop again. Lets an
-// installer find a wrong password or port without committing to a session.
-async function testSource() {
-  var btn = document.getElementById('test-btn');
-  srcError('');
-  if (_selectedSource !== 'rtsp') {
-    srcError('การทดสอบใช้ได้กับกล้อง IP (RTSP) เท่านั้น');
-    return;
-  }
-  var entries = rtspUrls();
-  if (!entries.length) { srcError('กรุณากรอก RTSP URL อย่างน้อย 1 ช่อง'); return; }
-
-  btn.disabled = true;
-  var was = btn.textContent;
-  btn.textContent = 'กำลังทดสอบ...';
-  [0, 1, 2].forEach(function (i) { rtspState(i, ''); });
-
-  var ok = 0;
-  for (var n = 0; n < entries.length; n++) {
-    var e = entries[n];
-    rtspState(e.idx, 'testing', 'กำลังทดสอบ');
-    try {
-      var res = await fetch('/api/pipeline/start', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'rtsp', camera_id: 'cam' + n, rtsp_url: e.url }),
-      });
-      var d = await res.json();
-      if (d.ok) {
-        ok++;
-        rtspState(e.idx, 'ok', 'เชื่อมต่อได้');
-        await fetch('/api/pipeline/stop', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ camera_id: 'cam' + n }),
-        });
-      } else {
-        rtspState(e.idx, 'fail', d.error || 'เชื่อมต่อไม่ได้');
-      }
-    } catch (err) {
-      rtspState(e.idx, 'fail', 'เรียก API ไม่สำเร็จ');
-    }
-  }
-
-  btn.disabled = false;
-  btn.textContent = was;
-  if (ok < entries.length) {
-    srcError('เชื่อมต่อได้ ' + ok + '/' + entries.length
-             + ' กล้อง — ชี้ที่ช่องสีแดงเพื่อดูสาเหตุ');
-  } else {
-    ZENTRA.toast('ทดสอบผ่านทั้ง ' + ok + ' กล้อง', 'success');
-  }
 }
 
 async function connectSource() {
@@ -396,18 +388,19 @@ function startDemo() {
 }
 
 function init_source() {
+  _rtspRows = [''];
+  rtspRender();          // draw the single starting row before the fetch lands
   fetch('/api/settings').then(function (r) { return r.json(); }).then(function (s) {
-    // Fill the three slots from the cameras already registered, so returning
-    // to this screen shows the site as it stands instead of three empty boxes
-    // the operator has to retype.
+    // Show the site as it stands: one row per camera already registered, so
+    // returning here does not ask the operator to retype what is saved.
     var cams = s.cameras || {};
     var urls = Object.keys(cams).sort()
       .map(function (id) { return (cams[id] || {}).rtsp_url; })
       .filter(function (u) { return u; });
-    urls.slice(0, 3).forEach(function (u, i) {
-      var el = document.getElementById('rtsp-url-' + i);
-      if (el) el.value = u;
-    });
+    if (urls.length) {
+      _rtspRows = urls.slice(0, RTSP_MAX);
+      rtspRender();
+    }
 
     // Pre-select the source that is actually configured. With RTSP cameras in
     // the registry that IS the site's source, regardless of the legacy
