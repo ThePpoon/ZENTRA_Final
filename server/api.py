@@ -1020,6 +1020,50 @@ async def report_daily_pdf(day: str | None = None, start: str | None = None,
     return FileResponse(str(path), media_type="application/pdf", filename=path.name)
 
 
+@app.post("/api/line/test")
+async def line_test():
+    """Send one short message to every enabled LINE group.
+
+    The only way to know LINE actually works is to make it deliver something,
+    so this really does push a message — labelled as a test so nobody in the
+    group mistakes it for an incident. Reports the true outcome: a token that
+    LINE rejects, or a bot that is not in the group, must not read as success.
+    """
+    try:
+        from alerts.line_notify import _send_to_group
+        import config as cfg
+
+        token = getattr(cfg, "LINE_OA_CHANNEL_ACCESS_TOKEN", "")
+        if not token:
+            return JSONResponse(
+                {"ok": False, "error": "ยังไม่ได้ตั้งค่าโทเคน — ใส่โทเคนแล้วกดบันทึกก่อน"},
+                status_code=400)
+        groups = [g for g in dict.fromkeys(getattr(cfg, "LINE_ALL_GROUPS", []) or []) if g]
+        if not groups:
+            return JSONResponse(
+                {"ok": False,
+                 "error": "ไม่มีกลุ่มที่เปิดใช้งาน — เพิ่ม Group ID และติ๊ก \"เปิด\" แล้วกดบันทึก"},
+                status_code=400)
+
+        msg = ("ทดสอบการเชื่อมต่อจากระบบ ZENTRA\n"
+               f"เวลา {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+               "ถ้าเห็นข้อความนี้ แปลว่าการแจ้งเตือนพร้อมใช้งาน")
+
+        def _send():
+            return [(g, _send_to_group(g, msg)) for g in groups]
+
+        results = await _in_executor(_send)
+        sent = [g for g, ok in results if ok]
+        if not sent:
+            return JSONResponse(
+                {"ok": False,
+                 "error": "LINE ปฏิเสธคำขอ — ตรวจว่าโทเคนถูกต้อง และบอทอยู่ในกลุ่มนั้นแล้ว"},
+                status_code=502)
+        return JSONResponse({"ok": True, "sent": len(sent), "total": len(groups)})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.post("/api/report/send-line")
 async def report_send_line(body: dict[str, Any] | None = None):
     """Push the daily summary to LINE and report the REAL outcome.

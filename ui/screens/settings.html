@@ -6,7 +6,6 @@
     <!-- Left Sidebar -->
     <div class="settings-sidebar">
       <div class="settings-menu-item active" data-section="line"    onclick="showSection('line',   this)">การแจ้งเตือน Line</div>
-      <div class="settings-menu-item"        data-section="ai"      onclick="showSection('ai',     this)">การตรวจจับ AI</div>
       <div class="settings-menu-item"        data-section="camera"  onclick="showSection('camera', this)">กล้องและวิดีโอ</div>
       <div class="settings-menu-item"        data-section="data"    onclick="showSection('data',   this)">การจัดการข้อมูล</div>
       <div class="settings-menu-item"        data-section="about"   onclick="showSection('about',  this)">การจัดการระบบ</div>
@@ -64,75 +63,11 @@
 
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button class="btn btn-primary" onclick="saveSettings()">บันทึกการตั้งค่า</button>
+    <button class="btn btn-outline" type="button" onclick="testLine()" id="line-test-btn">ทดสอบส่งข้อความ</button>
     <button class="btn btn-ghost"   onclick="resetSettings()">รีเซ็ต</button>
   </div>
-  <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
-</template>
-
-<template id="tpl-ai">
-  <div class="settings-section-title">การตรวจจับ AI</div>
-  <div class="settings-section-sub">ปรับค่าเกณฑ์และความไวของโมดูลต่าง ๆ</div>
-  <div class="settings-group">
-    <div class="flex flex-col gap-3">
-      <div>
-        <div class="flex justify-between mb-1">
-          <span class="input-label">ความเชื่อมั่นการตรวจ PPE</span>
-          <span class="text-accent font-600" id="val-ppe">0.30</span>
-        </div>
-        <input type="range" min="0.25" max="0.95" step="0.01" value="0.30" id="sl-ppe"
-               oninput="document.getElementById('val-ppe').textContent=parseFloat(this.value).toFixed(2)">
-      </div>
-      <div>
-        <div class="flex justify-between mb-1">
-          <span class="input-label">ความมั่นใจขั้นต่ำก่อนแจ้งเตือน</span>
-          <span class="text-accent font-600" id="val-abstain">0.35</span>
-        </div>
-        <input type="range" min="0" max="0.9" step="0.05" value="0.35" id="sl-abstain"
-               oninput="document.getElementById('val-abstain').textContent=parseFloat(this.value).toFixed(2)">
-        <div style="font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.55">
-          กล้องที่มองเห็นไม่ชัดพอ (เช่น เห็นแค่ด้านหลังคน จึงไม่เห็นเสื้อกั๊ก)
-          จะ<b style="color:var(--text)">ไม่แจ้งเตือน</b> แทนที่จะเดา —
-          ปล่อยให้กล้องมุมที่เห็นชัดเป็นคนตัดสิน<br>
-          ยิ่งสูง = แจ้งเตือนผิดน้อยลง แต่เสี่ยงตรวจไม่เจอมากขึ้น · <b>0 = ปิดการทำงาน</b>
-        </div>
-      </div>
-      <div>
-        <div class="flex justify-between mb-1">
-          <span class="input-label">ยืนยันการล้ม (จำนวนเฟรม)</span>
-          <span class="text-accent font-600" id="val-frames">6</span>
-        </div>
-        <input type="range" min="1" max="20" step="1" value="6" id="sl-frames"
-               oninput="document.getElementById('val-frames').textContent=this.value">
-      </div>
-      <div>
-        <div class="flex justify-between mb-1">
-          <span class="input-label">อัตราส่วนกล่อง (แนวนอน)</span>
-          <span class="text-accent font-600" id="val-ratio">0.72</span>
-        </div>
-        <input type="range" min="0.50" max="0.95" step="0.01" value="0.72" id="sl-ratio"
-               oninput="document.getElementById('val-ratio').textContent=parseFloat(this.value).toFixed(2)">
-      </div>
-      <!-- The load/save code has always read and written #sel-fall-mode, but the
-           control itself was never in this template — so cfg.FALL_MODE could not
-           be changed from the app at all, and a save silently left it alone. -->
-      <div>
-        <div class="flex justify-between mb-1">
-          <span class="input-label">วิธีตัดสินการล้ม</span>
-        </div>
-        <select class="input w-full" id="sel-fall-mode">
-          <option value="hybrid">ผสม (แนะนำ) — ใช้ท่าทาง + การเคลื่อนไหว</option>
-          <option value="pose">ท่าทางอย่างเดียว — ต้องเห็นตัวคนชัด</option>
-          <option value="yolo">การเคลื่อนไหวอย่างเดียว — ใช้เมื่อคนอยู่ไกล</option>
-        </select>
-        <div style="font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.55">
-          <b>ผสม</b> แจ้งเตือนเมื่อวิธีใดวิธีหนึ่งยืนยัน — จับได้ครอบคลุมที่สุด<br>
-          เลือกอย่างใดอย่างหนึ่งเมื่อต้องการลดการแจ้งเตือนผิดในสภาพแวดล้อมเฉพาะ
-        </div>
-      </div>
-    </div>
-  </div>
-  <button class="btn btn-primary mt-2" onclick="saveSettings()">บันทึก</button>
-  <div id="save-msg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:16px;"></div>
+  <div id="line-test-msg" class="text-xs" style="margin-top:8px;min-height:16px"></div>
+  <div id="save-msg" style="margin-top:4px;font-size:12px;color:var(--green);min-height:16px;"></div>
 </template>
 
 <template id="tpl-camera">
@@ -155,10 +90,6 @@
        switch was necessarily wrong for one of them. -->
   <div class="settings-group">
     <div class="settings-group-title">พลิกภาพแนวนอน (Mirror)</div>
-    <div class="text-xs text-muted" style="margin-bottom:10px;line-height:1.55">
-      เลือกเฉพาะกล้องที่ต้องการให้พลิกซ้าย-ขวา · Webcam มักต้องพลิก (ภาพเหมือนส่องกระจก)
-      ส่วนกล้อง IP ติดเพดานไม่ต้อง
-    </div>
     <div id="flip-list"></div>
   </div>
   <button class="btn btn-primary mt-2" onclick="saveSettings()">บันทึก</button>
@@ -450,19 +381,6 @@ function showSection(name, el) {
   content.appendChild(tpl.content.cloneNode(true));
 
   // Populate values
-  if (name === 'line' || name === 'ai') {
-    const ai = _settings.ai || {};
-    const sl_ppe = document.getElementById('sl-ppe');
-    if (sl_ppe) { sl_ppe.value = ai.ppe_confidence ?? 0.30; document.getElementById('val-ppe').textContent = parseFloat(sl_ppe.value).toFixed(2); }
-    const sl_ab = document.getElementById('sl-abstain');
-    if (sl_ab) { sl_ab.value = ai.abstain_weight ?? 0.35; document.getElementById('val-abstain').textContent = parseFloat(sl_ab.value).toFixed(2); }
-    const sl_frames = document.getElementById('sl-frames');
-    if (sl_frames) { sl_frames.value = ai.fall_confirm_frames ?? 6; document.getElementById('val-frames').textContent = sl_frames.value; }
-    const sl_ratio = document.getElementById('sl-ratio');
-    if (sl_ratio) { sl_ratio.value = ai.fall_bbox_ratio ?? 0.72; document.getElementById('val-ratio').textContent = parseFloat(sl_ratio.value).toFixed(2); }
-    const sel_fm = document.getElementById('sel-fall-mode');
-    if (sel_fm) sel_fm.value = ai.fall_mode || 'hybrid';
-  }
   if (name === 'line') {
     const line = _settings.line || {};
     const tok = document.getElementById('line-token');
@@ -549,16 +467,9 @@ async function saveSettings() {
   // Collect current values
   const s = JSON.parse(JSON.stringify(_settings));
 
-  const sl_ppe    = document.getElementById('sl-ppe');
-  const sl_frames = document.getElementById('sl-frames');
-  const sl_ratio  = document.getElementById('sl-ratio');
-  if (sl_ppe)    { s.ai = s.ai || {}; s.ai.ppe_confidence    = parseFloat(sl_ppe.value); }
-  const sl_ab = document.getElementById('sl-abstain');
-  if (sl_ab)     { s.ai = s.ai || {}; s.ai.abstain_weight     = parseFloat(sl_ab.value); }
-  if (sl_frames) { s.ai = s.ai || {}; s.ai.fall_confirm_frames= parseInt(sl_frames.value); }
-  if (sl_ratio)  { s.ai = s.ai || {}; s.ai.fall_bbox_ratio   = parseFloat(sl_ratio.value); }
-  const sel_fm = document.getElementById('sel-fall-mode');
-  if (sel_fm)    { s.ai = s.ai || {}; s.ai.fall_mode = sel_fm.value; }
+  // settings.ai is deliberately left untouched. The AI screen was removed, so
+  // the app no longer edits detection thresholds — the values on disk stand as
+  // the tuned defaults and a save from any other section must not disturb them.
 
   const tok = document.getElementById('line-token');
   if (tok) { s.line = s.line || {}; s.line.channel_access_token = tok.value; }
@@ -782,6 +693,26 @@ function renderFlipList() {
       +   '<div class="text-xs text-muted" style="margin-top:2px">' + s.kind + '</div>'
       + '</div></label>';
   }).join('');
+}
+
+/* Sends a real message. It is the only check that proves the whole chain —
+   token, group id, and the bot actually being a member — so it reports what
+   LINE returned rather than "saved OK". */
+async function testLine() {
+  const btn = document.getElementById('line-test-btn');
+  const msg = document.getElementById('line-test-msg');
+  const say = (text, colour) => { if (msg) { msg.textContent = text; msg.style.color = colour; } };
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังส่ง...'; }
+  say('', '');
+  try {
+    const res = await fetch('/api/line/test', { method: 'POST' });
+    const d = await res.json();
+    if (d.ok) say(`ส่งสำเร็จ ${d.sent}/${d.total} กลุ่ม — ตรวจที่แอป LINE ได้เลย`, 'var(--green)');
+    else      say(d.error || 'ส่งไม่สำเร็จ', 'var(--red)');
+  } catch (e) {
+    say('เรียก API ไม่สำเร็จ', 'var(--red)');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'ทดสอบส่งข้อความ'; }
 }
 
 async function changeSource() {
