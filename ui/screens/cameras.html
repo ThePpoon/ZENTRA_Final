@@ -559,7 +559,9 @@ function camOpenRoleModal(id) {
   cl.innerHTML = _rolesCfg.map(function(r){
     var checked = current.indexOf(r.id) !== -1;
     return '<label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer">'
-      + '<input type="checkbox" id="role-chk-'+r.id+'" '+(checked?'checked':'')+' style="width:16px;height:16px;cursor:pointer;margin-top:2px;accent-color:var(--accent)">'
+      + '<input type="checkbox" id="role-chk-'+r.id+'" '+(checked?'checked':'')
+      +   ' onchange="camRoleToggled()"'
+      +   ' style="width:16px;height:16px;cursor:pointer;margin-top:2px;accent-color:var(--accent)">'
       + '<div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:17px">'+r.icon+'</span>'
       + '<span style="font-size:13.5px;font-weight:700;color:var(--text)">'+r.label+'</span></div>'
       + '<div style="font-size:12px;color:var(--text-muted);margin-top:3px">'+r.desc+'</div></div></label>';
@@ -568,17 +570,42 @@ function camOpenRoleModal(id) {
   camRenderZoneSection(id);
 }
 
+// Which PPE items to check only means anything while the PPE role is on, so
+// the list follows that checkbox instead of sitting there live and ignored.
+function camPpeRoleOn() {
+  var chk = document.getElementById('role-chk-ppe');
+  return !!(chk && chk.checked);
+}
+
+function camRoleToggled() {
+  camRenderPpeSection(_roleCamId);
+}
+
 function camRenderPpeSection(camId) {
   var box = document.getElementById('role-ppe-section'); if (!box) return;
+  var on  = camPpeRoleOn();
   var sel = (_camPpeItems[camId] || []).length ? _camPpeItems[camId] : ['helmet','vest'];
   var head = '<div style="font-size:12px;font-weight:800;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">ตรวจเช็ค PPE อะไรบ้าง</div>';
+  if (!on) {
+    head += '<div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px">'
+          + 'เปิด "ตรวจจับ PPE" ด้านบนก่อน จึงจะเลือกอุปกรณ์ได้</div>';
+  }
   var grid = _ppeItemsCfg.map(function(it){
-    var checked = sel.indexOf(it.id) !== -1;
-    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer">'
-      + '<input type="checkbox" id="ppe-item-'+it.id+'" '+(checked?'checked':'')+' style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
+    var checked = on && sel.indexOf(it.id) !== -1;
+    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;'
+      +   'background:var(--bg-card-alt);border:1px solid var(--border);'
+      +   'cursor:' + (on ? 'pointer' : 'not-allowed') + ';opacity:' + (on ? '1' : '.45') + '">'
+      + '<input type="checkbox" id="ppe-item-'+it.id+'" '+(checked?'checked':'')
+      +   (on ? '' : ' disabled')
+      +   ' style="width:15px;height:15px;cursor:'+(on?'pointer':'not-allowed')+';accent-color:var(--accent)">'
       + '<span style="font-size:16px">'+it.icon+'</span><span style="font-size:13px;color:var(--text)">'+it.label+'</span></label>';
   }).join('');
-  box.innerHTML = head + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+grid+'</div>';
+  var note = '<div style="margin-top:10px;padding:8px 11px;border-left:2px solid var(--border-mid);'
+    + 'background:var(--bg-card-alt);border-radius:0 6px 6px 0;font-size:11.5px;'
+    + 'color:var(--text-muted);line-height:1.6">'
+    + 'ระบบรองรับการตรวจจับอุปกรณ์ PPE ได้มากกว่า 1 ชิ้น '
+    + 'แต่ถ้ามากเกินไปอาจส่งผลต่อการทำงานของระบบ</div>';
+  box.innerHTML = head + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+grid+'</div>' + note;
 }
 function camRenderZoneSection(camId) {
   var box = document.getElementById('role-zone-section'); if (!box) return;
@@ -606,15 +633,20 @@ async function camSaveRoles() {
   var id = _roleCamId; if (!id) return;
   var selected = _rolesCfg.filter(function(r){ var chk=document.getElementById('role-chk-'+r.id); return chk&&chk.checked; }).map(function(r){ return r.id; });
   _camRoles[id] = selected;
-  var ppeItems = _ppeItemsCfg.filter(function(it){ var chk=document.getElementById('ppe-item-'+it.id); return chk&&chk.checked; }).map(function(it){ return it.id; });
-  // PPE on with nothing ticked is a camera that can never raise a violation
-  // while every screen reports its PPE module as "ok". Say so and keep the
-  // previous list rather than saving a silently-dead configuration.
-  if (selected.indexOf('ppe') !== -1 && !ppeItems.length) {
-    ZENTRA.toast('เลือกอุปกรณ์ที่จะตรวจอย่างน้อย 1 อย่าง — ไม่งั้นกล้องนี้จะไม่แจ้งเตือน PPE เลย', 'warn');
-    return;
+  if (selected.indexOf('ppe') !== -1) {
+    var ppeItems = _ppeItemsCfg.filter(function(it){ var chk=document.getElementById('ppe-item-'+it.id); return chk&&chk.checked; }).map(function(it){ return it.id; });
+    // PPE on with nothing ticked is a camera that can never raise a violation
+    // while every screen reports its PPE module as "ok". Say so and keep the
+    // previous list rather than saving a silently-dead configuration.
+    if (!ppeItems.length) {
+      ZENTRA.toast('เลือกอุปกรณ์ที่จะตรวจอย่างน้อย 1 อย่าง — ไม่งั้นกล้องนี้จะไม่แจ้งเตือน PPE เลย', 'warn');
+      return;
+    }
+    _camPpeItems[id] = ppeItems;
   }
-  _camPpeItems[id] = ppeItems;
+  // PPE off: the item boxes are disabled, so reading them back would record an
+  // empty list and lose the operator's selection. Leave it as it was — turning
+  // the role on again should restore what they picked, not a blank slate.
   _camRolesDirty[id] = true;      // the operator changed these on purpose
   camPersist().then(function(){
     camCloseRoleModal();
