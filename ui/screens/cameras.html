@@ -10,8 +10,8 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <!-- Layout switcher (1 / 4 / 9 / 16) -->
-      <div id="cam-layout-switch" style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:3px"></div>
-      <button onclick="camAddOpen()" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
+      <div id="cam-layout-switch" style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:3px"></div>
+      <button onclick="camAddOpen()" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;border-radius:var(--r-lg);border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
         เพิ่มกล้อง
       </button>
@@ -34,7 +34,7 @@
 </div>
 
 <style>
-  .cam-tile{position:relative;background:#0b1220;border:1px solid var(--border);border-radius:12px;overflow:hidden;aspect-ratio:16/9;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s}
+  .cam-tile{position:relative;background:#0b1220;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;aspect-ratio:16/9;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s}
   .cam-tile:hover{border-color:var(--border-accent,var(--accent))}
   .cam-tile.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
   .cam-tile.alarm{animation:camAlarmFlash 1.1s ease-in-out 3}
@@ -47,13 +47,13 @@
   .cam-live.off{background:#6b7280;animation:none}
   .cam-tile-btns{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:8px 10px;background:linear-gradient(to top,rgba(0,0,0,.55),transparent);opacity:0;transition:opacity .15s}
   .cam-tile:hover .cam-tile-btns{opacity:1}
-  .cam-tbtn{width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cam-tbtn{width:30px;height:30px;border-radius:var(--r);border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .cam-tbtn:hover{background:rgba(0,0,0,.7)}
   /* Destructive action reads as destructive only on hover — a red button sitting
      permanently on every tile invites the mis-click it is trying to prevent. */
   .cam-tbtn-del:hover{background:rgba(239,68,68,.85);border-color:rgba(239,68,68,.9)}
   .cam-badge{padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800;white-space:nowrap;flex-shrink:0}
-  .cam-lay-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:800}
+  .cam-lay-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:var(--r);border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:800}
   .cam-lay-btn.active{background:var(--accent);color:#fff}
 </style>
 
@@ -61,17 +61,17 @@
 <div id="cam-fs-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;flex-direction:column">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);flex-shrink:0">
     <div style="display:flex;align-items:center;gap:10px">
-      <span style="display:flex;align-items:center;gap:6px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);padding:4px 10px;border-radius:7px;color:#ef4444;font-size:11.5px;font-weight:700">
+      <span style="display:flex;align-items:center;gap:6px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);padding:4px 10px;border-radius:var(--r);color:#ef4444;font-size:11.5px;font-weight:700">
         <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;animation:recPulse 1.4s infinite"></span>LIVE
       </span>
       <span id="fs-cam-label" style="color:#fff;font-weight:600;font-size:14px">กล้อง</span>
     </div>
     <div style="display:flex;gap:10px;align-items:center">
-      <button onclick="camOpenRoleModal(_fsCamId)" style="display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
+      <button onclick="camOpenRoleModal(_fsCamId)" style="display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
         ตั้งค่าบทบาท
       </button>
-      <button onclick="camCloseFs()" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+      <button onclick="camCloseFs()" style="width:34px;height:34px;border-radius:var(--r);border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
@@ -91,14 +91,14 @@
 
 <!-- ══════════════ ADD / EDIT CAMERA MODAL ══════════════ -->
 <div id="cam-add-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5);width:460px;max-width:92vw;max-height:90vh;overflow-y:auto;padding:26px">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 60px rgba(0,0,0,.5);width:460px;max-width:92vw;max-height:90vh;overflow-y:auto;padding:26px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div style="font-size:17px;font-weight:800;color:var(--text)" id="cam-add-title">เพิ่มกล้อง</div>
-      <button onclick="camAddClose()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
+      <button onclick="camAddClose()" style="width:32px;height:32px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
     </div>
 
     <label style="font-size:12px;font-weight:700;color:var(--text-muted)">ชื่อกล้อง</label>
-    <input id="cam-add-name" class="input" type="text" placeholder="เช่น โซนผลิต A" style="width:100%;margin:6px 0 16px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+    <input id="cam-add-name" class="input" type="text" placeholder="เช่น โซนผลิต A" style="width:100%;margin:6px 0 16px;height:38px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
 
     <label style="font-size:12px;font-weight:700;color:var(--text-muted)">แหล่งภาพ</label>
     <div style="display:flex;gap:8px;margin:6px 0 14px">
@@ -109,53 +109,53 @@
 
     <div id="cam-add-webcam" style="margin-bottom:16px">
       <label style="font-size:12px;color:var(--text-muted)">Webcam index</label>
-      <input id="cam-add-index" type="number" min="0" value="0" style="width:100%;margin-top:6px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+      <input id="cam-add-index" type="number" min="0" value="0" style="width:100%;margin-top:6px;height:38px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
     </div>
     <div id="cam-add-rtsp" style="margin-bottom:16px;display:none">
       <label style="font-size:12px;color:var(--text-muted)">RTSP URL</label>
-      <input id="cam-add-url" type="text" placeholder="rtsp://192.168.1.100:554/stream1" style="width:100%;margin-top:6px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+      <input id="cam-add-url" type="text" placeholder="rtsp://192.168.1.100:554/stream1" style="width:100%;margin-top:6px;height:38px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
     </div>
     <div id="cam-add-file" style="margin-bottom:16px;display:none">
       <label style="font-size:12px;color:var(--text-muted)">ไฟล์วิดีโอ</label>
       <div style="display:flex;gap:8px;margin-top:6px">
-        <input id="cam-add-path" type="text" readonly placeholder="เลือกไฟล์..." style="flex:1;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
-        <button onclick="camAddBrowse()" style="height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--font);font-size:13px">เลือก</button>
+        <input id="cam-add-path" type="text" readonly placeholder="เลือกไฟล์..." style="flex:1;height:38px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text);padding:0 12px;box-sizing:border-box;font-family:var(--font)">
+        <button onclick="camAddBrowse()" style="height:38px;padding:0 14px;border-radius:var(--r-lg);border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--font);font-size:13px">เลือก</button>
       </div>
     </div>
 
     <div id="cam-add-error" style="color:var(--red);font-size:12.5px;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;gap:9px;justify-content:flex-end">
-      <button onclick="camAddClose()" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text-sub);font-family:var(--font);font-size:13px;cursor:pointer">ยกเลิก</button>
-      <button onclick="camAddSave()" style="height:36px;padding:0 20px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer" id="cam-add-save">บันทึกและเริ่ม</button>
+      <button onclick="camAddClose()" style="height:36px;padding:0 16px;border-radius:var(--r-lg);border:1px solid var(--border);background:transparent;color:var(--text-sub);font-family:var(--font);font-size:13px;cursor:pointer">ยกเลิก</button>
+      <button onclick="camAddSave()" style="height:36px;padding:0 20px;border-radius:var(--r-lg);border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer" id="cam-add-save">บันทึกและเริ่ม</button>
     </div>
   </div>
 </div>
 <style>
-  .cam-src-tab{flex:1;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text-sub);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
+  .cam-src-tab{flex:1;height:36px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--bg-card-alt);color:var(--text-sub);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
   .cam-src-tab.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 </style>
 
 <!-- ══════════════ ROLE ASSIGNMENT MODAL ══════════════ -->
 <div id="cam-role-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5);width:440px;max-height:90vh;overflow-y:auto;padding:28px">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 60px rgba(0,0,0,.5);width:440px;max-height:90vh;overflow-y:auto;padding:28px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
         <div style="font-size:17px;font-weight:800;color:var(--text)">ตั้งค่าบทบาทการตรวจจับ</div>
         <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px" id="role-modal-cam-name">กล้อง</div>
       </div>
-      <button onclick="camCloseRoleModal()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
+      <button onclick="camCloseRoleModal()" style="width:32px;height:32px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
     </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;background:var(--bg-card-alt);border-radius:9px;padding:10px 14px">
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;background:var(--bg-card-alt);border-radius:var(--r-lg);padding:10px 14px">
       เลือกโมเดลตรวจจับที่ต้องการเปิดใช้สำหรับกล้องนี้
     </div>
     <div id="role-checklist" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px"></div>
     <div id="role-ppe-section" style="margin-bottom:20px"></div>
     <div id="role-zone-section" style="margin-bottom:20px"></div>
     <div style="display:flex;gap:9px;justify-content:space-between">
-      <button onclick="camRemoveCurrent()" style="height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--red);background:transparent;color:var(--red);font-family:var(--font);font-size:13px;cursor:pointer">ลบกล้อง</button>
+      <button onclick="camRemoveCurrent()" style="height:36px;padding:0 14px;border-radius:var(--r-lg);border:1px solid var(--red);background:transparent;color:var(--red);font-family:var(--font);font-size:13px;cursor:pointer">ลบกล้อง</button>
       <div style="display:flex;gap:9px">
-        <button onclick="camCloseRoleModal()" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text-sub);font-family:var(--font);font-size:13px;cursor:pointer">ยกเลิก</button>
-        <button onclick="camSaveRoles()" style="height:36px;padding:0 20px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">บันทึกบทบาท</button>
+        <button onclick="camCloseRoleModal()" style="height:36px;padding:0 16px;border-radius:var(--r-lg);border:1px solid var(--border);background:transparent;color:var(--text-sub);font-family:var(--font);font-size:13px;cursor:pointer">ยกเลิก</button>
+        <button onclick="camSaveRoles()" style="height:36px;padding:0 20px;border-radius:var(--r-lg);border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">บันทึกบทบาท</button>
       </div>
     </div>
   </div>
@@ -181,16 +181,16 @@ var _camLastTry   = {};     // camId -> last auto-start attempt (ms), for backof
 var _camRolesDirty = {};
 
 var _ppeItemsCfg = [
-  { id: 'helmet',  label: 'หมวกนิรภัย',   icon: '⛑️' },
-  { id: 'glasses', label: 'แว่นตานิรภัย',  icon: '🥽' },
-  { id: 'vest',    label: 'เสื้อกั๊ก',     icon: '🦺' },
-  { id: 'gloves',  label: 'ถุงมือ',        icon: '🧤' },
-  { id: 'boots',   label: 'รองเท้าเซฟตี้', icon: '🥾' },
+  { id: 'helmet',  label: 'หมวกนิรภัย',   ico: 'helmet'  },
+  { id: 'glasses', label: 'แว่นตานิรภัย',  ico: 'glasses' },
+  { id: 'vest',    label: 'เสื้อกั๊ก',     ico: 'vest'    },
+  { id: 'gloves',  label: 'ถุงมือ',        ico: 'gloves'  },
+  { id: 'boots',   label: 'รองเท้าเซฟตี้', ico: 'boots'   },
 ];
 var _rolesCfg = [
-  { id: 'ppe',  label: 'ตรวจจับ PPE',       desc: 'ตรวจหมวก แว่นตา เสื้อกั๊ก ถุงมือ รองเท้า', color: 'var(--orange)', icon: '🦺' },
-  { id: 'zone', label: 'เฝ้าพื้นที่อันตราย', desc: 'ตรวจบุคคลเข้าพื้นที่อันตราย',            color: 'var(--accent)', icon: '📍' },
-  { id: 'fall', label: 'ตรวจจับการล้ม',      desc: 'ตรวจการล้มและแจ้งเตือนฉุกเฉิน',        color: 'var(--red)',    icon: '🚑' },
+  { id: 'ppe',  label: 'ตรวจจับ PPE',       desc: 'ตรวจหมวก แว่นตา เสื้อกั๊ก ถุงมือ รองเท้า', color: 'var(--orange)', ico: 'helmet' },
+  { id: 'zone', label: 'เฝ้าพื้นที่อันตราย', desc: 'ตรวจบุคคลเข้าพื้นที่อันตราย',            color: 'var(--accent)', ico: 'zoneArea' },
+  { id: 'fall', label: 'ตรวจจับการล้ม',      desc: 'ตรวจการล้มและแจ้งเตือนฉุกเฉิน',        color: 'var(--red)',    ico: 'fall' },
 ];
 
 function camById(id) { return _camList.find(function(c){ return c.id === id; }); }
@@ -563,7 +563,8 @@ function camRemoveCurrent() {
 function camRoleBadge(roleId) {
   var r = _rolesCfg.find(function(x){ return x.id === roleId; });
   if (!r) return '';
-  return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;background:'+r.color+'22;color:'+r.color+';font-size:11px;font-weight:700;white-space:nowrap">'+r.icon+' '+r.label+'</span>';
+  return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;background:'+r.color+'22;color:'+r.color+';font-size:11px;font-weight:700;white-space:nowrap">'
+    + '<span class="role-ico">' + ZENTRA.icon(r.ico) + '</span>' + r.label + '</span>';
 }
 function camOpenRoleModal(id) {
   _roleCamId = id;
@@ -580,7 +581,7 @@ function camOpenRoleModal(id) {
       + '<input type="checkbox" id="role-chk-'+r.id+'" '+(checked?'checked':'')
       +   ' onchange="camRoleToggled()"'
       +   ' style="width:16px;height:16px;cursor:pointer;margin-top:2px;accent-color:var(--accent)">'
-      + '<div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:17px">'+r.icon+'</span>'
+      + '<div style="flex:1"><div style="display:flex;align-items:center;gap:8px"><span class="role-ico" style="color:'+r.color+'">'+ZENTRA.icon(r.ico)+'</span>'
       + '<span style="font-size:13.5px;font-weight:700;color:var(--text)">'+r.label+'</span></div>'
       + '<div style="font-size:12px;color:var(--text-muted);margin-top:3px">'+r.desc+'</div></div></label>';
   }).join('');
@@ -610,13 +611,13 @@ function camRenderPpeSection(camId) {
   }
   var grid = _ppeItemsCfg.map(function(it){
     var checked = on && sel.indexOf(it.id) !== -1;
-    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;'
+    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-lg);'
       +   'background:var(--bg-card-alt);border:1px solid var(--border);'
       +   'cursor:' + (on ? 'pointer' : 'not-allowed') + ';opacity:' + (on ? '1' : '.45') + '">'
       + '<input type="checkbox" id="ppe-item-'+it.id+'" '+(checked?'checked':'')
       +   (on ? '' : ' disabled')
       +   ' style="width:15px;height:15px;cursor:'+(on?'pointer':'not-allowed')+';accent-color:var(--accent)">'
-      + '<span style="font-size:16px">'+it.icon+'</span><span style="font-size:13px;color:var(--text)">'+it.label+'</span></label>';
+      + '<span class="role-ico">'+ZENTRA.icon(it.ico)+'</span><span style="font-size:13px;color:var(--text)">'+it.label+'</span></label>';
   }).join('');
   var note = '<div style="margin-top:10px;padding:8px 11px;border-left:2px solid var(--border-mid);'
     + 'background:var(--bg-card-alt);border-radius:0 6px 6px 0;font-size:11.5px;'
@@ -636,7 +637,7 @@ function camRenderZoneSection(camId) {
     var list = mine.length === 0
       ? '<div style="font-size:12px;color:var(--text-muted);font-style:italic;padding:4px 0">ยังไม่ได้กำหนดพื้นที่สำหรับกล้องนี้</div>'
       : mine.map(function(z){
-          return '<div onclick="camEditZone(\''+camId+'\','+z.id+')" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer;margin-bottom:6px">'
+          return '<div onclick="camEditZone(\''+camId+'\','+z.id+')" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-lg);background:var(--bg-card-alt);border:1px solid var(--border);cursor:pointer;margin-bottom:6px">'
             + '<span style="width:9px;height:9px;border-radius:2px;background:#ef4444;flex-shrink:0"></span>'
             + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ZENTRA.esc(z.name||'Zone')+'</div>'
             + '<div style="font-size:10.5px;color:var(--text-muted)">อันตราย · '+(z.points||[]).length+' จุด</div></div></div>';

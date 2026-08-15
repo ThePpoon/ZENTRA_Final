@@ -667,6 +667,35 @@ ZENTRA.icons = {
   settings:  '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',
   shield:    '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
   cameras:   '<path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/>',
+
+  /* ── Detection roles + PPE items ──────────────────────────────────────
+     These were emoji. Emoji are drawn by the OS font, so they arrive in a
+     different weight, colour and optical size than every other glyph in the
+     app, and they cannot inherit currentColor — a "safety vest" sitting in a
+     row of thin monochrome line icons reads as a sticker. Same 24px grid and
+     2px stroke as the navigation set above, so they take the surrounding
+     colour and line up with it. */
+  helmet:    '<path d="M3.5 17h17"/><path d="M6 17v-4.5a6 6 0 0 1 12 0V17"/>'
+           + '<path d="M10 7.2V6a2 2 0 0 1 4 0v1.2"/>',
+  glasses:   '<rect x="2.5" y="8.5" width="19" height="7.5" rx="3.75"/>'
+           + '<path d="M12 8.5v7.5"/><path d="M2.5 11H1"/><path d="M21.5 11H23"/>',
+  /* Two panels with a gap down the middle, not one closed body: a vest is
+     open-fronted, and a single outline with a bar across it read as a window. */
+  vest:      '<path d="M8.5 3.2 5 5.2V21h4V3.2"/><path d="M15.5 3.2 19 5.2V21h-4V3.2"/>'
+           + '<path d="m8.5 3.2 3.5 4 3.5-4"/>'
+           + '<path d="M5 13.5h4"/><path d="M15 13.5h4"/>',
+  /* The cuff line is what separates a glove from a bare hand at 17px. */
+  gloves:    '<path d="M8 12V7a1.5 1.5 0 0 1 3 0v5"/>'
+           + '<path d="M11 12V6a1.5 1.5 0 0 1 3 0v6"/>'
+           + '<path d="M14 12V7.5a1.5 1.5 0 0 1 3 0V13"/>'
+           + '<path d="M8 12v-1.5a1.5 1.5 0 0 0-3 0V14a6 6 0 0 0 6 6h3a3 3 0 0 0 3-3v-4"/>'
+           + '<path d="M6.4 17.4h10.4"/>',
+  boots:     '<path d="M7 3h6v10l4.6 2.3a2 2 0 0 1 1.1 1.8V21H7z"/><path d="M7 9h6"/>',
+  zoneArea:  '<path d="M4 8V5a1 1 0 0 1 1-1h3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/>'
+           + '<path d="M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/>'
+           + '<circle cx="12" cy="12" r="2.5"/>',
+  fall:      '<circle cx="7" cy="6.5" r="2.5"/><path d="M9.2 8.8 14 13.5"/>'
+           + '<path d="m14 13.5 4.2-1.2"/><path d="M14 13.5 12.6 18"/><path d="M3 20.5h18"/>',
 };
 ZENTRA.icon = function (name) {
   return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
@@ -691,7 +720,10 @@ function renderSidebar(active) {
       + '</button>';
   }).join('');
 
-  return '<div class="sb-brand">' + ZENTRA.icon('shield') + '</div>'
+  return '<div class="sb-brand">'
+    +   '<img class="brand-logo" src="/ui/assets/logo-mark.png" alt="ZENTRA"'
+    +   ' width="491" height="316">'
+    + '</div>'
     + '<nav class="sb-nav">' + nav + '</nav>';
 }
 

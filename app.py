@@ -152,16 +152,104 @@ def _do_shutdown():
         print(f"[App] shutdown warning: {e}")
 
 
+SERVER_URL = "http://127.0.0.1:7788/"
+
+
+def _boot_html() -> str:
+    """The small window shown while the server comes up.
+
+    Self-contained on purpose: the logo is inlined as a data URI and there is
+    no stylesheet link, because this has to render BEFORE uvicorn is listening
+    — anything fetched over http would show as a broken image for the couple of
+    seconds this window exists. Frameless and fixed-size, so it reads as a
+    launcher rather than an application window that happens to be empty.
+    """
+    import base64
+    logo = ""
+    try:
+        p = Path(__file__).parent / "ui" / "assets" / "logo-boot.png"
+        logo = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode("ascii")
+    except Exception:
+        pass
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+  html,body{{margin:0;height:100%;background:#0C0C0E;
+    font-family:'Kanit','Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;
+    overflow:hidden;cursor:default}}
+  .w{{height:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:26px;border:1px solid #232325;box-sizing:border-box}}
+  img{{width:230px;height:auto;display:block}}
+  /* Indeterminate: the real work is model loading, whose duration we cannot
+     know, so a sweeping bar is honest where a percentage would be invented. */
+  .track{{width:230px;height:2px;background:#232325;overflow:hidden;border-radius:2px}}
+  .bar{{width:38%;height:100%;background:#4C8DF6;border-radius:2px;
+    animation:sweep 1.15s cubic-bezier(.45,.05,.55,.95) infinite}}
+  @keyframes sweep{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(363%)}}}}
+  p{{margin:0;font-size:12px;color:#79797B;letter-spacing:.2px}}
+  @media (prefers-reduced-motion:reduce){{.bar{{animation:none;width:100%;opacity:.5}}}}
+</style></head><body><div class="w">
+  {'<img src="' + logo + '" alt="ZENTRA">' if logo else '<div style="color:#EFEFF1;font-size:26px;letter-spacing:6px">ZENTRA</div>'}
+  <div class="track"><div class="bar"></div></div>
+  <p>กำลังเริ่มระบบ กรุณารอสักครู่...</p>
+</div></body></html>"""
+
+
+def _centered(w: int, h: int) -> dict:
+    """x/y that put a w×h window in the middle of the primary screen.
+
+    Uses webview.screens rather than the Win32 metrics: pywebview positions
+    windows in LOGICAL units, so on a 1920x1080 display scaled to 125% the
+    numbers to work from are 1536x864, not 1920x1080. Centring against the
+    physical size would push the window down and to the right by a quarter of
+    the screen. Returns {} when the screen cannot be read, which leaves
+    pywebview's own default placement in charge.
+    """
+    try:
+        s = webview.screens[0]
+        return {"x": int(getattr(s, "x", 0) + (s.width - w) / 2),
+                "y": int(getattr(s, "y", 0) + (s.height - h) / 2)}
+    except Exception:
+        return {}
+
+
+def _wait_for_server(timeout: float = 60.0) -> bool:
+    """Block until the API answers, so the main window never opens on a dead
+    port. The old code slept a flat 2 s, which is under the real startup cost on
+    a cold machine — the window then loaded before uvicorn was listening and
+    showed a connection error instead of the app."""
+    import urllib.request
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(SERVER_URL, timeout=1.5) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            time.sleep(0.25)
+    return False
+
+
 if __name__ == "__main__":
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
-    time.sleep(2.0)
 
     # If the server requires a token (ZENTRA_API_TOKEN), hand it to the UI on the
     # initial URL so the same desktop window authenticates automatically. The UI
     # persists it and attaches it to every fetch/WebSocket call. No token → plain URL.
     _token = os.getenv("ZENTRA_API_TOKEN", "").strip()
-    _url = "http://127.0.0.1:7788/" + (f"?token={_token}" if _token else "")
+    _url = SERVER_URL + (f"?token={_token}" if _token else "")
+
+    _BOOT_W, _BOOT_H = 430, 250
+    boot = webview.create_window(
+        title="ZENTRA",
+        html=_boot_html(),
+        width=_BOOT_W, height=_BOOT_H,
+        frameless=True,
+        easy_drag=True,
+        resizable=False,
+        on_top=True,
+        background_color="#0C0C0E",
+        **_centered(_BOOT_W, _BOOT_H),
+    )
 
     window = webview.create_window(
         title="ZENTRA Safety AI System",
@@ -175,7 +263,11 @@ if __name__ == "__main__":
         height=800,
         min_size=(1024, 640),
         js_api=JsApi(),
-        background_color="#0d1b2a",
+        background_color="#0C0C0E",
+        # Created hidden and revealed only once the server answers. Showing it
+        # immediately would put an empty full-screen window behind the launcher
+        # for the whole startup.
+        hidden=True,
     )
     # Stop the pipeline as soon as the window begins closing, but do it on a
     # background thread. pipeline.stop() joins the capture/detect threads (up to
@@ -186,7 +278,22 @@ if __name__ == "__main__":
 
     window.events.closing += _on_closing
 
-    webview.start(debug=False)
+    def _hand_over():
+        """Launcher → app. Runs on a worker thread that pywebview starts for us,
+        so the GUI stays responsive while we wait on the port."""
+        ok = _wait_for_server()
+        if not ok:
+            print("[App] ❌ server did not come up — closing launcher")
+        try:
+            window.show()
+        except Exception as e:
+            print(f"[App] show main window: {e}")
+        try:
+            boot.destroy()
+        except Exception:
+            pass
+
+    webview.start(_hand_over, debug=False)
 
     # Safety net: also stop after the GUI loop returns
     shutdown_pipeline()

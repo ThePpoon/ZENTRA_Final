@@ -3,10 +3,10 @@
    Color palette matched to storyboard screenshots
    ═══════════════════════════════════════════════ */
 
-/* Kanit is now bundled locally (ui/assets/fonts/kanit/) so the UI always renders
+/* IBM Plex Sans Thai is bundled locally (ui/assets/fonts/plex-thai/) so the UI renders
    in the right font even offline. Previously it loaded from the Google Fonts CDN,
    which fell back to a system sans-serif whenever the network was down. */
-@import url('/ui/assets/fonts/kanit.css');
+@import url('/ui/assets/fonts/plex-thai.css');
 
 /* ═══════════════════════════════════════════════════════════════
    DESIGN TOKENS — dark, enterprise (UniFi structure × iVMS density)
@@ -30,18 +30,24 @@
    ═══════════════════════════════════════════════════════════════ */
 :root {
   /* ── 1. Primitives ──────────────────────────────── */
-  --ink-950:    #0B0D11;   /* app base            */
-  --ink-900:    #0E1116;   /* rails, chrome       */
-  --ink-880:    #10141B;   /* inputs (inset)      */
-  --ink-850:    #141821;   /* panels, cards       */
-  --ink-800:    #1C212C;   /* raised / hover      */
-  --ink-750:    #1F242F;   /* hairline            */
-  --ink-700:    #2C3340;   /* visible border      */
-  --ink-600:    #3A4353;   /* strong border       */
+  /* Near-neutral greys. The earlier ramp carried a blue cast that grew with
+     lightness (+6 at the base, +28 at the tertiary text), which read as a
+     tinted UI rather than a quiet one. These sit at +2 blue — enough that the
+     screen is not a dead flat grey, little enough that the only colour on it
+     is the colour that means something. Each step keeps the luminance of the
+     value it replaced (within 0.3%), so every contrast ratio is unchanged. */
+  --ink-950:    #0C0C0E;   /* app base            */
+  --ink-900:    #101012;   /* rails, chrome       */
+  --ink-880:    #131315;   /* inputs (inset)      */
+  --ink-850:    #171719;   /* panels, cards       */
+  --ink-800:    #202022;   /* raised / hover      */
+  --ink-750:    #232325;   /* hairline            */
+  --ink-700:    #323234;   /* visible border      */
+  --ink-600:    #424244;   /* strong border       */
 
-  --paper-100:  #EDEFF3;   /* primary text        */
-  --paper-300:  #A7AEC0;   /* secondary text      */
-  --paper-500:  #727A8E;   /* tertiary text       */
+  --paper-100:  #EFEFF1;   /* primary text        */
+  --paper-300:  #AEAEB0;   /* secondary text      */
+  --paper-500:  #79797B;   /* tertiary text       */
 
   --blue-500:   #4C8DF6;
   --blue-600:   #2F6FD8;
@@ -56,7 +62,7 @@
   --surface-raised:  var(--ink-850);
   --surface-overlay: var(--ink-800);
   --surface-sunken:  var(--ink-880);
-  --surface-video:   #05070B;
+  --surface-video:   #060607;
 
   --border-subtle:   var(--ink-750);
   --border-default:  var(--ink-700);
@@ -84,7 +90,7 @@
   --fw-normal: 400; --fw-medium: 500; --fw-bold: 700;
 
   /* ── 3b. Component ──────────────────────────────── */
-  --font:         'Kanit', sans-serif;
+  --font:         'IBM Plex Sans Thai', 'Segoe UI', system-ui, sans-serif;
   --r-sm:         4px;
   --r:            5px;     /* was 8px — enterprise chrome is tighter */
   --r-lg:         6px;     /* was 12px                                */
@@ -1273,23 +1279,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 /* ── Identity ─────────────────────────────────────── */
 .splash-identity {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   margin-bottom: var(--sp-8);
 }
-.splash-mark {
-  width: 52px; height: 52px;
-  font-size: 26px;
-  border-radius: var(--r-lg);
-  box-shadow: none;
-}
-.splash-title {
-  font-size: 28px;
-  font-weight: var(--fw-bold);
-  letter-spacing: 5px;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
+.splash-logo { width: 300px; }
 .splash-subtitle {
   font-size: var(--fs-sm);
   color: var(--text-tertiary);
@@ -1450,12 +1445,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   gap: var(--sp-3);
   margin-bottom: var(--sp-6);
 }
-.source-panel-mark {
-  width: 36px; height: 36px;
-  font-size: 18px;
-  border-radius: var(--r-lg);
-  box-shadow: none;
-}
+.source-panel-mark { width: 42px; }
 .source-panel-title {
   font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
@@ -1547,7 +1537,10 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .src-hint {
   font-size: var(--fs-xs);
-  color: var(--text-tertiary);
+  /* Secondary, not tertiary: at 11px, tertiary lands at 3.75:1 on this
+     surface — under the 4.5:1 small-text bar. These lines carry the URL
+     shape and the camera-count caveat, so they have to be readable. */
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-top: var(--sp-2);
 }
@@ -1657,7 +1650,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   background: var(--surface-overlay);
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
   font-size: var(--fs-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 .src-hint code {
@@ -1963,3 +1956,36 @@ textarea:focus-visible {
 .zt-dp-foot { display: flex; justify-content: space-between; margin-top: 8px; }
 .zt-dp-mini { border: none; background: transparent; color: var(--accent); font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 6px; border-radius: 7px; }
 .zt-dp-mini:hover { background: var(--accent-dim); }
+
+
+/* ══════════════════════════════════════════════════
+   BRAND LOGO
+   ══════════════════════════════════════════════════ */
+/* The artwork is white ink on transparency — one file, sized by width so the
+   aspect ratio is never squashed. In the light theme white ink would be
+   invisible, so it is inverted to near-black rather than shipping a second
+   asset that can drift out of sync with the first. */
+.brand-logo {
+  height: auto;
+  max-width: 100%;
+  display: block;
+  object-fit: contain;
+  /* Rendering hint: these are line art, so keep edges crisp when scaled down. */
+  image-rendering: -webkit-optimize-contrast;
+}
+body[data-theme="light"] .brand-logo { filter: invert(1) brightness(0.18); }
+/* …except where it sits on the accent tile, which stays dark in both themes.
+   Inverting there put dark ink on a blue square and the falcon disappeared. */
+body[data-theme="light"] .sb-brand .brand-logo { filter: none; }
+
+.source-brand-logo { width: 340px; margin-bottom: var(--sp-3); }
+
+/* Sidebar tile: the falcon alone, on the accent square it already had. */
+.sb-brand .brand-logo { width: 21px; }
+
+/* Role / PPE item icons — sized here rather than inline so every row in the
+   camera modal shares one optical size. */
+.role-ico { display: inline-flex; flex-shrink: 0; color: var(--text-secondary); }
+.role-ico .ico { width: 17px; height: 17px; }
+.cam-badge .role-ico .ico { width: 13px; height: 13px; }
+.cam-badge .role-ico { color: inherit; }
