@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────
+# ZENTRA — .gitattributes
+#
+# เหตุผลหลัก: ผู้ใช้ปลายทางโหลดโปรเจกต์นี้ได้ 2 ทาง — git clone หรือปุ่ม
+# "Download ZIP" ของ GitHub ทั้งสองทางต้องได้ไฟล์ที่รันได้เหมือนกัน
+# ไฟล์ .bat ต้องเป็น CRLF เสมอ ไม่ว่าเครื่องผู้ใช้จะตั้ง core.autocrlf ไว้ยังไง
+# ─────────────────────────────────────────────────────────────
+
+# สคริปต์ Windows — CRLF เสมอ
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# สคริปต์ Linux (cloud/) — LF เสมอ ไม่งั้น shebang พังใน Docker
+*.sh   text eol=lf
+
+# ไฟล์ไบนารี — ห้าม git แตะ byte ใด ๆ
+*.pt      binary
+*.tflite  binary
+*.png     binary
+*.jpg     binary
+*.ico     binary
+*.pdf     binary
+*.ttf     binary
+*.woff2   binary
+*.db      binary
+*.mp4     binary
+*.exe     binary
+
+# ไม่ต้องติดไปกับ ZIP ที่ผู้ใช้ปลายทางโหลด
+.gitattributes  export-ignore
+.gitignore      export-ignore
