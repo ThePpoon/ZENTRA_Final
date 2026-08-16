@@ -1,5 +1,16 @@
 # ZENTRA — Multi-Camera Edge Architecture Review & Deep-Dive Requirements
 
+> **⚠️ เอกสารเก็บไว้อ้างอิงเท่านั้น — ไม่ใช่สภาพระบบปัจจุบัน**
+>
+> นี่คือ brief ที่เขียน *ก่อน* ลงมือ refactor multi-camera งานตามเอกสารนี้ทำเสร็จแล้ว
+> เก็บไว้เพื่อให้เห็นเหตุผลเบื้องหลังการออกแบบ (ทำไมถึงเลือกแบบนี้)
+>
+> ส่วนที่ **ไม่ตรงกับของจริงแล้ว**:
+> - ระบบ multi-view fusion / เทียบพื้นที่ (ground-plane calibration) ถูกถอดออกทั้งหมด
+> - เมนูประมวลผลบน Cloud ถูกถอดออก (โค้ดใน `cloud/` ยังอยู่ แต่ไม่มีทางเข้าจาก UI)
+>
+> **ต้องการรู้ว่าตอนนี้ระบบเป็นยังไง → อ่าน [STRUCTURE.md](STRUCTURE.md)**
+
 ## Purpose
 
 เอกสารนี้ใช้เป็น technical brief สำหรับให้ Claude Code ตรวจสอบและปรับปรุงสถาปัตยกรรม Multi-Camera ของ ZENTRA ก่อนเริ่ม refactor จริง

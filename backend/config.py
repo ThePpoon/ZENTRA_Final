@@ -19,12 +19,10 @@ load_dotenv(Path(__file__).parent / ".env", override=False)
 BASE_DIR      = Path(__file__).parent
 DATA_DIR      = BASE_DIR / "data"
 MODELS_DIR    = BASE_DIR / "models"
-REPORTS_DIR   = BASE_DIR / "reports"
-LOGS_DIR      = BASE_DIR / "logs"
 COLLECTED_DIR = DATA_DIR / "collected"
 
 for _d in [
-    DATA_DIR, MODELS_DIR, REPORTS_DIR, LOGS_DIR,
+    DATA_DIR, MODELS_DIR,
     COLLECTED_DIR / "ppe_violations",
     COLLECTED_DIR / "zone_intrusions",
     COLLECTED_DIR / "fall_events",

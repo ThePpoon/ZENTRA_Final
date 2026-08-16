@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 # Bundled web fonts: Python's mimetypes doesn't know woff2 → StaticFiles would
 # serve it with a generic type. Register the correct type so the browser accepts
-# the locally-hosted Kanit font without complaint.
+# the locally-hosted IBM Plex Sans Thai font without complaint.
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("font/woff", ".woff")
 
