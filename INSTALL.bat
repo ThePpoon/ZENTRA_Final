@@ -143,25 +143,75 @@ rem   แล้วไปโผล่เป็น SyntaxError ตอนท้า�
 rem   ลอง import ของจริงตรงนี้เลย จะได้เจอตั้งแต่ตอนที่ยังบอกวิธีแก้ได้
 :PY_HEALTH
 "%PY311%" -c "import wsgiref.handlers,ssl,sqlite3,ctypes,zlib,lzma,venv,encodings.idna" >nul 2>&1
-if errorlevel 1 goto PY_BROKEN
+if not errorlevel 1 goto PY_HEALTH_OK
+rem ซ่อมได้ครั้งเดียวพอ ถ้าซ่อมแล้วยังพังอีกแปลว่ามีอย่างอื่นกวนอยู่
+if defined PYFIXED goto PY_BROKEN
+goto PY_AUTOFIX
+
+:PY_HEALTH_OK
 echo        ตรวจไฟล์ภายใน Python - ครบถ้วน
 goto MAKE_VENV
 
+rem   ซ่อมให้เองแทนที่จะโยนให้ผู้ใช้ไปกด Settings -> Repair
+rem   ตัวติดตั้งของ Python รองรับ /repair อยู่แล้ว และเป็นการเขียนทับไฟล์ที่หาย
+rem   ไม่ใช่การถอนออก จึงไม่กระทบโปรแกรมอื่นที่ใช้ Python ตัวนี้อยู่
+:PY_AUTOFIX
+set "PYFIXED=1"
+echo.
+echo        [พบปัญหา] ไฟล์ภายใน Python ขาดหายบางส่วน - จะซ่อมให้อัตโนมัติ
+echo.
+if not exist "%PY_EXE%" goto PY_FIX_DOWNLOAD
+rem ไฟล์ติดตั้งที่มีอยู่อาจเป็นตัวที่โหลดมาไม่ครบเมื่อรอบก่อน (สาเหตุเดิมนั่นเอง)
+powershell -NoProfile -Command "if ((Get-AuthenticodeSignature -LiteralPath '%PY_EXE%').Status -ne 'Valid') { exit 1 }" >nul 2>&1
+if not errorlevel 1 goto PY_FIX_RUN
+echo        ตัวติดตั้งเดิมในเครื่องเสียหาย - ลบทิ้งแล้วโหลดใหม่
+del /q "%PY_EXE%" 2>nul
+
+:PY_FIX_DOWNLOAD
+echo        ดาวน์โหลดตัวติดตั้ง Python %PY_VER% (~25 MB)
+if not exist "setup" mkdir "setup"
+%CURL% -o "%PY_EXE%" "%PY_URL%"
+if errorlevel 1 goto PY_FIX_NODL
+if not exist "%PY_EXE%" goto PY_FIX_NODL
+powershell -NoProfile -Command "if ((Get-AuthenticodeSignature -LiteralPath '%PY_EXE%').Status -ne 'Valid') { exit 1 }" >nul 2>&1
+if errorlevel 1 goto PY_FIX_BADDL
+echo        ลายเซ็นถูกต้อง (Python Software Foundation)
+
+:PY_FIX_RUN
+echo        กำลังซ่อม Python (2-4 นาที ห้ามปิดหน้าต่างนี้)
+start /wait "" "%PY_EXE%" /repair /quiet
+rem .venv เดิมถูกสร้างจาก Python ที่พัง ต้องทิ้งแล้วสร้างใหม่
+rem (ปลอดภัย: เป็นโฟลเดอร์ที่สร้างใหม่ได้ทั้งหมดจาก requirements-win.txt)
+if exist ".venv" echo        ลบ .venv เดิมที่สร้างจาก Python ที่พัง
+if exist ".venv" rmdir /s /q ".venv"
+echo        ซ่อมเสร็จ - ตรวจไฟล์ภายใน Python อีกครั้ง
+goto PY_HEALTH
+
+:PY_FIX_NODL
+echo        [เตือน] ดาวน์โหลดตัวติดตั้งไม่สำเร็จ - ซ่อมอัตโนมัติไม่ได้
+goto PY_BROKEN
+
+:PY_FIX_BADDL
+del /q "%PY_EXE%" 2>nul
+echo        [เตือน] ไฟล์ที่โหลดมาลายเซ็นไม่ผ่าน - ซ่อมอัตโนมัติไม่ได้
+goto PY_BROKEN
+
 :PY_BROKEN
 echo.
-echo [ผิดพลาด] Python 3.11 ในเครื่องนี้ติดตั้งไม่สมบูรณ์
+echo [ผิดพลาด] Python 3.11 ในเครื่องนี้ติดตั้งไม่สมบูรณ์ และซ่อมอัตโนมัติไม่สำเร็จ
 echo.
 echo   %PY311%
 echo.
 echo เปิดโปรแกรมได้ แต่ไฟล์ข้างในขาดหายไปบางส่วน
-echo (มักเกิดจากดิสก์เต็มตอนติดตั้ง หรือโปรแกรมป้องกันไวรัสขัดจังหวะ)
+echo ที่พบบ่อยคือโปรแกรมป้องกันไวรัสกันไม่ให้เขียนไฟล์ครบตอนติดตั้ง
 echo.
-echo วิธีแก้:
-echo   1. เปิด Settings -^> Apps -^> Installed apps
-echo   2. หา "Python 3.11.9" -^> กดปุ่ม ... -^> Modify -^> Repair
-echo      (ถ้าไม่มีตัวเลือก Repair ให้ Uninstall แล้วปล่อยให้ ZENTRA ลงใหม่)
-echo   3. ลบโฟลเดอร์ .venv ในโฟลเดอร์นี้ทิ้ง ถ้ามี
-echo   4. ดับเบิลคลิก ZENTRA.bat ใหม่อีกครั้ง
+echo วิธีแก้ ทำตามลำดับ:
+echo   1. ปิดโปรแกรมป้องกันไวรัสชั่วคราว (ถ้าลงตัวอื่นนอกจาก Windows Defender)
+echo   2. เปิด Settings -^> Apps -^> Installed apps
+echo   3. หา "Python 3.11.9" -^> กดปุ่ม ... -^> Uninstall
+echo      (ถอนออกให้หมด อย่าเลือก Repair เพราะเพิ่งลองให้แล้วไม่ผ่าน)
+echo   4. ลบโฟลเดอร์ .venv ในโฟลเดอร์นี้ทิ้ง ถ้ามี
+echo   5. ดับเบิลคลิก ZENTRA.bat ใหม่ - จะโหลด Python ตัวใหม่มาลงให้เอง
 echo.
 echo รายละเอียดข้อผิดพลาด:
 "%PY311%" -c "import wsgiref.handlers,ssl,sqlite3,ctypes,zlib,lzma,venv,encodings.idna"
