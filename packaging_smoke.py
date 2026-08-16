@@ -113,6 +113,123 @@ def _is_dll_failure(e: BaseException) -> bool:
             or "dynamic link library (dll) initialization routine failed" in text)
 
 
+# ── forensics for a native-import failure ────────────────────────────────
+# A missing C++ runtime is only the most COMMON cause of WinError 1114, not
+# the only one, and asserting it when the DLLs are demonstrably present sends
+# the person at the machine off to install something they already have. When
+# the easy explanation does not hold, collect the facts that separate the
+# remaining ones instead of guessing again.
+
+def _file_version(p: Path) -> str:
+    """Read a DLL's version resource. Old system DLLs load but export too
+    little for a binary built against a newer toolset, and that shows up here
+    and nowhere else."""
+    try:
+        import ctypes
+        ver = ctypes.windll.version
+        size = ver.GetFileVersionInfoSizeW(str(p), None)
+        if not size:
+            return "?"
+        buf = ctypes.create_string_buffer(size)
+        ver.GetFileVersionInfoW(str(p), 0, size, buf)
+        block, length = ctypes.c_void_p(), ctypes.c_uint()
+        if not ver.VerQueryValueW(buf, "\\", ctypes.byref(block),
+                                  ctypes.byref(length)):
+            return "?"
+        # VS_FIXEDFILEINFO: [0]=signature [1]=strucVersion [2]=fileVersionMS
+        # [3]=fileVersionLS
+        ffi = ctypes.cast(block, ctypes.POINTER(ctypes.c_uint * 4)).contents
+        ms, ls = ffi[2], ffi[3]
+        return f"{ms >> 16}.{ms & 0xFFFF}.{ls >> 16}.{ls & 0xFFFF}"
+    except Exception:
+        return "?"
+
+
+def _torch_lib_dir() -> Path | None:
+    """Locate torch/lib without importing torch — importing is what fails."""
+    import site
+    roots = list(site.getsitepackages())
+    try:
+        roots.append(site.getusersitepackages())
+    except Exception:
+        pass
+    for r in roots:
+        d = Path(r) / "torch" / "lib"
+        if d.is_dir():
+            return d
+    return None
+
+
+def _dll_forensics() -> list[str]:
+    import ctypes
+
+    out: list[str] = []
+    sysdir = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32"
+
+    out.append("ไลบรารี C++ ของระบบ (System32):")
+    for d in ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll",
+              "ucrtbase.dll"):
+        p = sysdir / d
+        if p.exists():
+            out.append(f"     มี    {d:<20} v{_file_version(p)}"
+                       f"  {p.stat().st_size:,} ไบต์")
+        else:
+            out.append(f"     ไม่มี  {d}")
+
+    try:
+        k32 = ctypes.windll.kernel32
+        avx = bool(k32.IsProcessorFeaturePresent(39))   # PF_AVX_INSTRUCTIONS
+        avx2 = bool(k32.IsProcessorFeaturePresent(40))  # PF_AVX2_INSTRUCTIONS
+        out.append(f"ชุดคำสั่งของ CPU: AVX={'มี' if avx else 'ไม่มี'}"
+                   f"  AVX2={'มี' if avx2 else 'ไม่มี'}")
+        if not avx2:
+            out.append("     ** PyTorch สำหรับ Windows ต้องใช้ CPU ที่มี AVX2 **")
+            out.append("     ** ถ้า CPU ไม่มี จะพังแบบนี้เสมอ แก้ด้วยการลง "
+                       "ไลบรารีเพิ่มไม่ได้ **")
+    except Exception as e:
+        out.append(f"ชุดคำสั่งของ CPU: อ่านไม่ได้ ({e})")
+
+    try:
+        import importlib.metadata as md
+        out.append(f"torch ที่ติดตั้งไว้: {md.version('torch')}")
+    except Exception:
+        out.append("torch ที่ติดตั้งไว้: อ่านรุ่นไม่ได้")
+
+    libdir = _torch_lib_dir()
+    if libdir is None:
+        out.append("ไม่พบโฟลเดอร์ torch\\lib")
+        return out
+
+    dlls = sorted(libdir.glob("*.dll"))
+    total = sum(d.stat().st_size for d in dlls)
+    out.append(f"torch\\lib: {len(dlls)} ไฟล์ รวม {total / 1048576:.0f} MB")
+    empty = [d.name for d in dlls if d.stat().st_size == 0]
+    if empty:
+        out.append("     ** ไฟล์ขนาด 0 ไบต์ (เขียนไม่ครบ): "
+                   + ", ".join(empty[:6]) + " **")
+
+    # Load the core DLLs one at a time. Whichever fails first is the real
+    # subject of the error message, which only ever names c10.dll.
+    try:
+        with os.add_dll_directory(str(libdir)):
+            for name in ("c10.dll", "c10_cuda.dll"):
+                p = libdir / name
+                if not p.exists():
+                    continue
+                try:
+                    ctypes.WinDLL(str(p))
+                    out.append(f"     โหลด {name} ... ผ่าน "
+                               f"({p.stat().st_size:,} ไบต์)")
+                except OSError as e:
+                    out.append(f"     โหลด {name} ... ล้มเหลว "
+                               f"WinError {getattr(e, 'winerror', '?')} "
+                               f"({p.stat().st_size:,} ไบต์)")
+    except Exception as e:
+        out.append(f"     ทดสอบโหลด DLL ไม่ได้: {e}")
+
+    return out
+
+
 def _broken_stdlib_file(e: BaseException) -> str | None:
     """A SyntaxError inside Python's own Lib/ means the interpreter's files are
     damaged — truncated or half-written — not that our code is wrong."""
@@ -146,22 +263,44 @@ def diagnose() -> None:
         n += 1
         absent = _vcruntime_missing()
         print()
-        print(f"  [{n}] เครื่องนี้ยังไม่มี Visual C++ Redistributable")
+        if absent:
+            print(f"  [{n}] เครื่องนี้ยังไม่มี Visual C++ Redistributable")
+        else:
+            print(f"  [{n}] โหลดไลบรารีของ AI ไม่ได้ (ไฟล์ .dll เริ่มทำงานไม่สำเร็จ)")
         print(f"      ทำให้ล้มพร้อมกัน {len(dll_hits)} รายการ:")
         for lbl in dll_hits:
             print(f"        - {lbl}")
         print()
+
         if absent:
             print("      ไฟล์ระบบที่ขาด: " + ", ".join(absent))
+            print("      PyTorch กับตัวตรวจจับการล้มถูกคอมไพล์ด้วย Microsoft C++")
+            print("      จึงต้องใช้ไลบรารีตัวนี้ ตัวติดตั้ง Python ไม่ได้ลงให้")
+            print()
+            print("      วิธีแก้:")
+            print(f"        1. โหลด {VC_URL}")
+            print("        2. ดับเบิลคลิกติดตั้ง (จะมีหน้าต่างขออนุญาต ให้กด Yes)")
+            print("        3. ดับเบิลคลิก ZENTRA.bat อีกครั้ง")
         else:
-            print("      (ไฟล์อยู่ครบแล้ว แต่อาจเป็นรุ่นเก่าเกินไป)")
-        print("      PyTorch กับตัวตรวจจับการล้มถูกคอมไพล์ด้วย Microsoft C++")
-        print("      จึงต้องใช้ไลบรารีตัวนี้ ตัวติดตั้ง Python ไม่ได้ลงให้")
-        print()
-        print("      วิธีแก้:")
-        print(f"        1. โหลด {VC_URL}")
-        print("        2. ดับเบิลคลิกติดตั้ง (จะมีหน้าต่างขออนุญาต ให้กด Yes)")
-        print("        3. ดับเบิลคลิก ZENTRA.bat อีกครั้ง")
+            # Say plainly that the usual explanation is ruled out. OpenCV is
+            # built against the same runtime; if it imported, the runtime is
+            # there, and claiming otherwise sends people to reinstall
+            # something they already have.
+            print("      ไลบรารี C++ ของระบบ *มีครบแล้ว* จึงไม่ใช่สาเหตุนี้")
+            print("      ข้อมูลด้านล่างคือหลักฐานที่เก็บได้จากเครื่องนี้:")
+            print()
+            for line in _dll_forensics():
+                print("      " + line)
+            print()
+            print("      สิ่งที่ควรลองตามลำดับ:")
+            print("        1. ถ้าเห็นว่า CPU ไม่มี AVX2 -> เครื่องนี้ใช้ PyTorch")
+            print("           รุ่นมาตรฐานไม่ได้ ต้องเปลี่ยนเครื่อง")
+            print("        2. ปิดโปรแกรมป้องกันไวรัสชั่วคราว แล้วลงไลบรารีใหม่:")
+            print("             .venv\\Scripts\\python.exe -m pip install "
+                  "--force-reinstall --no-cache-dir torch torchvision")
+            print("        3. ถ้ายังไม่หาย ลบโฟลเดอร์ .venv ทิ้งแล้วกด "
+                  "ZENTRA.bat ใหม่")
+            print("        4. ส่งภาพหน้าจอทั้งหมดนี้ให้ผู้ดูแลระบบ")
 
     if broken:
         n += 1
