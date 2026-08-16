@@ -173,7 +173,7 @@ def _boot_html() -> str:
         pass
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   html,body{{margin:0;height:100%;background:#0C0C0E;
-    font-family:'Kanit','Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;
+    font-family:'IBM Plex Sans Thai','Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;
     overflow:hidden;cursor:default}}
   .w{{height:100%;display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:26px;border:1px solid #232325;box-sizing:border-box}}
@@ -191,6 +191,49 @@ def _boot_html() -> str:
   <div class="track"><div class="bar"></div></div>
   <p>กำลังเริ่มระบบ กรุณารอสักครู่...</p>
 </div></body></html>"""
+
+
+ICON_PATH = Path(__file__).parent / "ui" / "assets" / "zentra.ico"
+
+
+def _brand_windows_shell() -> None:
+    """Make Windows show ZENTRA rather than Python in the taskbar.
+
+    Two separate things were showing the Python feather:
+
+    1. The CONSOLE. ZENTRA.bat deliberately runs python.exe (not pythonw) so
+       there is a log window on machines we cannot reach — but that console's
+       taskbar button takes its icon from the owning executable, so the feather
+       sat next to the app. WM_SETICON points it at ours; the console stays.
+
+    2. TASKBAR IDENTITY. Without an explicit AppUserModelID, Windows files the
+       process under python.exe: pinning it pins Python, and windows group
+       under Python's icon. Setting our own id makes ZENTRA its own app.
+
+    All of it is best-effort — a failure here must never stop the app opening.
+    """
+    if sys.platform != "win32" or not ICON_PATH.exists():
+        return
+    import ctypes
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ZENTRA.SafetyAI.Desktop")
+    except Exception:
+        pass
+    try:
+        u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
+        u32.LoadImageW.restype = ctypes.c_void_p
+        k32.GetConsoleWindow.restype = ctypes.c_void_p
+        hwnd = k32.GetConsoleWindow()
+        if not hwnd:
+            return                      # launched without a console (pythonw / IDE)
+        IMAGE_ICON, LR_LOADFROMFILE, WM_SETICON = 1, 0x0010, 0x0080
+        for size, which in ((32, 1), (16, 0)):     # ICON_BIG, ICON_SMALL
+            h = u32.LoadImageW(None, str(ICON_PATH), IMAGE_ICON, size, size, LR_LOADFROMFILE)
+            if h:
+                u32.SendMessageW(ctypes.c_void_p(hwnd), WM_SETICON,
+                                 which, ctypes.c_void_p(h))
+    except Exception as e:
+        print(f"[App] console icon skipped: {e}")
 
 
 def _centered(w: int, h: int) -> dict:
@@ -229,6 +272,10 @@ def _wait_for_server(timeout: float = 60.0) -> bool:
 
 
 if __name__ == "__main__":
+    # Before any window exists: the taskbar identity has to be set while the
+    # process is still young, and the console icon can be fixed straight away.
+    _brand_windows_shell()
+
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
 
@@ -293,7 +340,11 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-    webview.start(_hand_over, debug=False)
+    # Window icon for the webview windows themselves (see _brand_windows_shell
+    # for the console and the taskbar identity).
+    _start_kw = {"icon": str(ICON_PATH)} if ICON_PATH.exists() else {}
+
+    webview.start(_hand_over, debug=False, **_start_kw)
 
     # Safety net: also stop after the GUI loop returns
     shutdown_pipeline()

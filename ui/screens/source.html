@@ -130,6 +130,19 @@
         ดูตัวอย่างหน้าตาโปรแกรมโดยไม่ต่อกล้อง
       </button>
 
+      <!-- The way out. This screen carries no sidebar and the app runs
+           full-screen with no title bar, so without this an operator who
+           opened it by mistake — or whose cameras will not connect — has
+           nothing to press. -->
+      <button class="src-quit" type="button" onclick="ZENTRA.quitApp()" id="quit-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>
+        </svg>
+        ปิดโปรแกรม
+      </button>
+
     </div>
   </div>
 

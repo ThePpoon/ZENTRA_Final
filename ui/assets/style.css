@@ -378,14 +378,26 @@ body.with-sidebar #app {
 }
 body.with-sidebar .navbar { display: none; }
 
+/* Black chip carrying the white falcon — the same treatment as the taskbar
+   icon, so the app and its shortcut show one mark. A hairline is what keeps
+   it a chip: the rail behind it is the same near-black, and without the
+   border the tile would dissolve into it. The blue this replaced was the only
+   place the accent colour meant "brand" rather than "this is interactive". */
 .sb-brand {
   width: 34px; height: 34px;
   flex-shrink: 0;
   border-radius: var(--r-lg);
-  background: var(--status-info);
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
   display: flex; align-items: center; justify-content: center;
   color: #fff;
   margin-bottom: var(--sp-5);
+}
+/* Light theme: the chip stays black and the falcon stays white — inverting it
+   here would put dark ink on a dark chip. */
+body[data-theme="light"] .sb-brand {
+  background: #0C0C0E;
+  border-color: #0C0C0E;
 }
 .sb-brand .ico { width: 18px; height: 18px; }
 
@@ -1707,6 +1719,31 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border-radius: var(--r-sm);
 }
 .src-demo:hover { color: var(--text-secondary); background: var(--bg-hover); }
+.src-demo:focus-visible,
+.src-quit:focus-visible { outline: 2px solid var(--status-info); outline-offset: 1px; }
+
+/* Quit sits below the demo link and reads quieter still — it is the exit, not
+   an action the screen is asking for. Red only on hover, so it never competes
+   with เชื่อมต่อ but is unmistakable once reached. */
+.src-quit {
+  width: 100%;
+  margin-top: var(--sp-1);
+  padding: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: color .15s, background .15s;
+}
+.src-quit svg { width: 15px; height: 15px; }
+.src-quit:hover { color: var(--status-alarm); background: var(--red-dim); }
 
 /* ── Right: identity ──────────────────────────────── */
 .source-brand {
