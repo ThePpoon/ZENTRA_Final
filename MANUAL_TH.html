@@ -397,6 +397,39 @@
   </tr>
 
   <tr>
+    <td>ขึ้น error เรื่อง<br><code>DLL</code> หรือ<br><code>c10.dll</code><br><code>WinError 1114</code></td>
+    <td>
+      เครื่องยังไม่มี <b>Visual C++ Redistributable</b> ซึ่งเป็นไลบรารีระบบที่
+      PyTorch และตัวตรวจจับการล้มต้องใช้ ตัวติดตั้ง Python <b>ไม่ได้ลงตัวนี้ให้</b>
+      เครื่องที่ไม่เคยลงโปรแกรมสาย C++ มาก่อนจึงมักขาด<br>
+      อาการเด่น: ล้มพร้อมกันหลายรายการ (PyTorch + โมเดลทั้ง 3 + ตัวตรวจการล้ม)
+      ด้วยข้อความเดียวกัน<br>
+      <b>แก้:</b> โหลด <code>https://aka.ms/vs/17/release/vc_redist.x64.exe</code>
+      → ดับเบิลคลิกติดตั้ง → กด <b>Yes</b> ตอนหน้าต่างขออนุญาตเด้งขึ้นมา
+      → กด <code>ZENTRA.bat</code> ใหม่
+      <div class="note" style="margin-top:10px">
+        ตัวติดตั้งรุ่นใหม่ตรวจและลงตัวนี้ให้อัตโนมัติแล้วในขั้น [5/10]
+        หน้านี้ไว้สำหรับเครื่องที่ติดตั้งไว้ก่อนหน้านั้น
+      </div>
+    </td>
+  </tr>
+
+  <tr>
+    <td>ขึ้น <code>SyntaxError</code><br>ในไฟล์ของ Python เอง<br>(เช่น <code>handlers.py</code>)</td>
+    <td>
+      <b>ไม่ใช่บั๊กของ ZENTRA</b> — เป็นไฟล์ของ Python ที่ติดตั้งไม่ครบ
+      มักเกิดจากดิสก์เต็มตอนติดตั้ง หรือโปรแกรมป้องกันไวรัสขัดจังหวะ<br>
+      <b>แก้:</b> Settings → Apps → Installed apps → หา <b>Python 3.11.9</b>
+      → ปุ่ม <code>...</code> → <code>Modify</code> → <code>Repair</code><br>
+      จากนั้นลบโฟลเดอร์ <code>.venv</code> ทิ้ง แล้วกด <code>ZENTRA.bat</code> ใหม่
+      <div class="note" style="margin-top:10px">
+        ตัวติดตั้งรุ่นใหม่ตรวจเจอตั้งแต่ขั้น [3/10] แล้วบอกวิธีแก้ให้ทันที
+        แทนที่จะปล่อยไปพังตอนท้าย
+      </div>
+    </td>
+  </tr>
+
+  <tr>
     <td>ขึ้นว่าติดตั้ง<br>Python ไม่สำเร็จ</td>
     <td>
       ปกติตัวติดตั้งโหลด Python จาก python.org แล้วลงให้เอง
